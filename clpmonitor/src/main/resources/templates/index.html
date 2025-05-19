@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Monitoramento de CLPs</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<div>   <a href="/store">Loja</a></div>
+<body>
+    <div class="container1">
+
+        <h1>Leitura dos dados da Bancada Smart 4.0</h1>
+
+        <h2>Estoque (CLP 1 - Matriz de 28 bytes)</h2>
+        <div id="clp1-grid" class="grid"></div>
+        <button onclick="updateStock()">Atualizar Estoque</button>
+
+        <h2>Expedição (CLP 4 - Matriz de 12 bytes)</h2>
+        <div id="expedition-grid" class="grid expedition-grid"></div>
+        <button onclick="updateExpedition()">Atualizar Expedição</button>
+    </div>
+
+    <div class="container2">
+        <div class="clp-write-section" id="clp-write-container" th:replace="fragments/formulario :: clp-write-fragment">
+
+        </div>
+    </div>
+
+    <script>
+        const eventSource = new EventSource('/clp-data-stream');
+        eventSource.addEventListener('clp1-data', function (event) {
+            const data = JSON.parse(event.data);
+
+            const byteArray = Array.isArray(data.value) ? data.value : JSON.parse(data.value);
+
+            const grid = document.getElementById('clp1-grid');
+
+            grid.innerHTML = '';
+
+            // forEach percorre os 28 valores do array byteArray.
+            byteArray.forEach((val, i) => {
+
+                const cell = document.createElement('div');
+                cell.classList.add('cell', `color-${val}`);
+                cell.textContent = i + 1;
+                grid.appendChild(cell);
+            });
+        });
+
+        // CLP 2
+        eventSource.addEventListener('clp2-data', function (event) {
+            const data = JSON.parse(event.data);
+            document.getElementById('clp2').textContent = data.value;
+        });
+
+        // CLP 3
+        eventSource.addEventListener('clp3-data', function (event) {
+            const data = JSON.parse(event.data);
+            document.getElementById('clp3').textContent = data.value;
+        });
+
+        // CLP 4
+        eventSource.addEventListener('clp4-data', function (event) {
+            const data = JSON.parse(event.data);
+            document.getElementById('clp4').textContent = data.value;
+        });
+
+        document.querySelectorAll('form[id^="clp-write-form"]').forEach(form => {
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch('/write-tag', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                    // Atualize a UI conforme necessário
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erro ao enviar dados: ' + error.message);
+                });
+            });
+        });
+
+        // Adicione este novo listener
+        eventSource.addEventListener('expedition-data', function (event) {
+            const data = JSON.parse(event.data);
+            const expeditionArray = Array.isArray(data.value) ? data.value : JSON.parse(data.value);
+            const grid = document.getElementById('expedition-grid');
+            grid.innerHTML = '';
+
+            expeditionArray.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.innerHTML = `P${i + 1} = [OP ${val}]`;
+
+                if (val) {
+                    cell.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+                    cell.style.border = "1px solid red";
+                } else {
+                    cell.style.backgroundColor = "rgba(0, 255, 0, 0.3)";
+                    cell.style.border = "1px solid green";
+                }
+
+                grid.appendChild(cell);
+            });
+        });
+
+        function update() {
+            fetch('/update', {
+                method: 'POST'
+            })
+        }
+
+        function updateStock() {
+            fetch('/update-stock', {
+                method: 'POST'
+            })
+        }
+
+        function updateExpedition() {
+            fetch('/update-expedition', {
+                method: 'POST'
+            })
+        }
+
+        window.onload = function () {
+            updateExpedition();
+            updateStock();
+        }
+    </script>
+</body>
+
+</html>

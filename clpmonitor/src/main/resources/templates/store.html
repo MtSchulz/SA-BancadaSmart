@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>SIG - BANCADA 4.0</title>
+</head>
+
+<body>
+    <main>
+        <section id="section-bloco-1">
+            <div class="pedido-view spin" id="pedido-view1">
+                <img class="imagem" id="bloco-1" src="assets/bloco/rblocoCor0.png" alt="Bloco">
+                <img class="imagem" id="lamina1-3" src="#" alt="Lâmina 3">
+                <img class="imagem" id="lamina1-1" src="#" alt="Lâmina 1">
+                <img class="imagem" id="lamina1-2" src="#" alt="Lâmina 2">
+                <img class="imagem" id="padrao1-1" src="#" alt="Padrão 1">
+                <img class="imagem" id="padrao1-2" src="#" alt="Padrão 2">
+                <img class="imagem" id="padrao1-3" src="#" alt="Padrão 3">
+                <button id="spin1" class="spin" onclick="spin(1)"><span
+                        class="material-symbols-rounded">chevron_right</span></button>
+            </div>
+            <form>
+                <div class="input-box">
+                    <label for="block-color-1">Cor do Bloco</label>
+                    <select name="block-color-1" id="block-color-1" onchange="changePedidoView(1)">
+                        <option value="" hidden selected>Selecione</option>
+                        <option th:each="entry : ${colorAvailability}" th:value="${entry.key}"
+                            th:data-max="${entry.value}"
+                            th:text="${entry.key == 1 ? 'Preto' : (entry.key == 2 ? 'Vermelho' : 'Azul')}">
+                        </option>
+                    </select>
+                </div>
+                <div class="input-combo">
+                    <div class="input-box">
+                        <label for="l1-color-1">Cor Lâmina 1</label>
+                        <select name="l1-color-1" id="l1-color-1" disabled onchange="changePedidoView(1)">
+                            <option value="" hidden selected>Selecione</option>
+                            <option value="1">Vermelho</option>
+                            <option value="2">Azul</option>
+                            <option value="3">Amarelo</option>
+                            <option value="4">Verde</option>
+                            <option value="5">Preto</option>
+                            <option value="6">Branco</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <label for="l1-pattern-1">Padrão Lâmina 1</label>
+                        <select name="l1-pattern-1" id="l1-pattern-1" disabled onchange="changePedidoView(1)">
+                            <option value="" hidden selected>Selecione</option>
+                            <option value="">Nenhum</option>
+                            <option value="1">Casa</option>
+                            <option value="2">Navio</option>
+                            <option value="3">Estrela</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-combo">
+                    <div class="input-box">
+                        <label for="l2-color-1">Cor Lâmina 2</label>
+                        <select name="l2-color-1" id="l2-color-1" disabled onchange="changePedidoView(1)">
+                            <option value="" hidden selected>Selecione</option>
+                            <option value="1">Vermelho</option>
+                            <option value="2">Azul</option>
+                            <option value="3">Amarelo</option>
+                            <option value="4">Verde</option>
+                            <option value="5">Preto</option>
+                            <option value="6">Branco</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <label for="l2-pattern-1">Padrão Lâmina 2</label>
+                        <select name="l2-pattern-1" id="l2-pattern-1" disabled onchange="changePedidoView(1)">
+                            <option value="" hidden selected>Selecione</option>
+                            <option value="">Nenhum</option>
+                            <option value="1">Casa</option>
+                            <option value="2">Navio</option>
+                            <option value="3">Estrela</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-combo">
+                    <div class="input-box">
+                        <label for="l3-color-1">Cor Lâmina 3</label>
+                        <select name="l3-color-1" id="l3-color-1" disabled onchange="changePedidoView(1)">
+                            <option value="" hidden selected>Selecione</option>
+                            <option value="1">Vermelho</option>
+                            <option value="2">Azul</option>
+                            <option value="3">Amarelo</option>
+                            <option value="4">Verde</option>
+                            <option value="5">Preto</option>
+                            <option value="6">Branco</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <label for="l3-pattern-1">Padrão Lâmina 3</label>
+                        <select name="l3-pattern-1" id="l3-pattern-1" disabled onchange="changePedidoView(1)">
+                            <option value="" hidden selected>Selecione</option>
+                            <option value="">Nenhum</option>
+                            <option value="1">Casa</option>
+                            <option value="2">Navio</option>
+                            <option value="3">Estrela</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" id="send-1" disabled>Confirmar</button>
+            </form>
+        </section>
+        <section class="plus">
+            <span class="material-symbols-rounded">add</span>
+        </section>
+        <section class="hidden">
+        </section>
+
+        <button class="enviar-pedido" id="enviar-pedido">Enviar Pedido</button>
+
+    </main>
+    <script src="js/store.js"></script>
+    <script>
+        document.getElementById("enviar-pedido").addEventListener("click", function () {
+            fetch("/pedidoTeste", {
+                method: "POST",
+            })
+        });
+    </script>
+</body>
+
+</html>
