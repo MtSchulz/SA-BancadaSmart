@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-LojaPedidoApplication<loja-pedido>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.exemplo.loja_pedido.LojaPedidoApplication",
+            "projectName": "loja-pedido",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
