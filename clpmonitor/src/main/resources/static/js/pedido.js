@@ -8,7 +8,6 @@ function renderBlocos() {
     for (let b = 0; b < blocos; b++) {
         const nBloco = b + 1;
         const blocoDiv = document.createElement("div");
-        const tipo = document.getElementById("tipoPedido").value;
         blocoDiv.classList.add("bloco");
         blocoDiv.id = "bloco-container-" + nBloco;
         blocoDiv.innerHTML = `
