@@ -1,47 +1,97 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
 <head>
     <title>Monitoramento de CLPs</title>
     <meta charset="UTF-8">
-    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/store.css}">
+    <link rel="stylesheet" th:href="@{/css/index.css}">
 </head>
-<div> <a href="/store">Loja</a></div>
 
 <body>
-    <div class="container1">
-
-        <h1>Leitura dos dados da Bancada Smart 4.0</h1>
-
-        <h2>Estoque (CLP 1 - Matriz de 28 bytes)</h2>
-        <div id="clp1-grid" class="grid"></div>
-        <button onclick="updateStock()">Atualizar Estoque</button>
-        <button onclick="enableEditMode()">Editar Estoque</button>
-        <button id="saveBtn" style="display:none;" onclick="saveStock()">Salvar Alterações</button>
-        <button id="cancelBtn" style="display:none;" onclick="cancelEdit()">Cancelar</button>
-
-        <!-- Modal para seleção de cor -->
-        <div id="colorModal" class="modal">
-            <div class="modal-content">
-                <h3>Selecione a Cor</h3>
-                <div>
-                    <button onclick="selectColor(0)">Vazio</button>
-                    <button onclick="selectColor(1)">Preto</button>
-                    <button onclick="selectColor(2)">Vermelho</button>
-                    <button onclick="selectColor(3)">Azul</button>
-                </div>
-                <button onclick="closeModal()">Fechar</button>
-            </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Bancada 4.0</h2>
         </div>
-
-        <h2>Expedição (CLP 4 - Matriz de 12 bytes)</h2>
-        <div id="expedition-grid" class="grid expedition-grid"></div>
-        <button onclick="updateExpedition()">Atualizar Expedição</button>
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="/" class="active">
+                        <span class="material-symbols-rounded">description</span>
+                        <span>Edição</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/store">
+                        <span class="material-symbols-rounded">home</span>
+                        <span>Pedido</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="history.html">
+                        <span class="material-symbols-rounded">history</span>
+                        <span>Histórico</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="status.html">
+                        <span class="material-symbols-rounded">monitoring</span>
+                        <span>Status</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="settings.html">
+                        <span class="material-symbols-rounded">settings</span>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
     </div>
 
-    <div class="container2">
-        <div class="clp-write-section" id="clp-write-container" th:replace="fragments/formulario :: clp-write-fragment">
+    <!-- Conteúdo Principal -->
+    <div class="main-container">
+        <div class="container">
+            <header class="header">
+                <h1>Edição de CLPs</h1>
+            </header>
 
+            <main class="main-content">
+                <div class="form-section">
+                    <h2>Leitura dos dados da Bancada Smart 4.0</h2>
+
+                    <h3>Estoque (CLP 1 - Matriz de 28 bytes)</h3>
+                    <div id="clp1-grid" class="grid"></div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="updateStock()">Atualizar Estoque</button>
+                        <button class="btn btn-primary" onclick="enableEditMode()">Editar Estoque</button>
+                        <button id="saveBtn" class="btn btn-primary" style="display:none;" onclick="saveStock()">Salvar Alterações</button>
+                        <button id="cancelBtn" class="btn btn-secondary" style="display:none;" onclick="cancelEdit()">Cancelar</button>
+                    </div>
+
+                    <!-- Modal para seleção de cor -->
+                    <div id="colorModal" class="modal">
+                        <div class="modal-content">
+                            <h3>Selecione a Cor</h3>
+                            <div class="color-options">
+                                <button class="btn btn-primary" onclick="selectColor(0)">Vazio</button>
+                                <button class="btn btn-primary" onclick="selectColor(1)">Preto</button>
+                                <button class="btn btn-primary" onclick="selectColor(2)">Vermelho</button>
+                                <button class="btn btn-primary" onclick="selectColor(3)">Azul</button>
+                            </div>
+                            <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+                        </div>
+                    </div>
+
+                    <h3>Expedição (CLP 4 - Matriz de 12 bytes)</h3>
+                    <div id="expedition-grid" class="grid expedition-grid"></div>
+                    <button class="btn btn-primary" onclick="updateExpedition()">Atualizar Expedição</button>
+                </div>
+
+            </main>
         </div>
     </div>
 
@@ -221,30 +271,6 @@
             });
         });
 
-        // Adicione este novo listener
-        eventSource.addEventListener('expedition-data', function (event) {
-            const data = JSON.parse(event.data);
-            const expeditionArray = Array.isArray(data.value) ? data.value : JSON.parse(data.value);
-            const grid = document.getElementById('expedition-grid');
-            grid.innerHTML = '';
-
-            expeditionArray.forEach((val, i) => {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.innerHTML = `P${i + 1} = [OP ${val}]`;
-
-                if (val) {
-                    cell.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
-                    cell.style.border = "1px solid red";
-                } else {
-                    cell.style.backgroundColor = "rgba(0, 255, 0, 0.3)";
-                    cell.style.border = "1px solid green";
-                }
-
-                grid.appendChild(cell);
-            });
-        });
-
         function update() {
             fetch('/update', {
                 method: 'POST'
@@ -268,6 +294,38 @@
             updateStock();
         }
     </script>
-</body>
 
+    <!-- Script Sidebar -->
+    <script>
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnMenuButton = event.target.closest('.menu-button');
+            
+            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuButton) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        function addMenuButton() {
+            if (window.innerWidth <= 768) {
+                const header = document.querySelector('.header');
+                if (!document.querySelector('.menu-button')) {
+                    const menuButton = document.createElement('button');
+                    menuButton.className = 'menu-button btn btn-secondary';
+                    menuButton.innerHTML = '<span class="material-symbols-rounded">menu</span>';
+                    menuButton.onclick = toggleSidebar;
+                    header.insertBefore(menuButton, header.firstChild);
+                }
+            }
+        }
+
+        window.addEventListener('resize', addMenuButton);
+        window.addEventListener('load', addMenuButton);
+    </script>
+</body>
 </html>

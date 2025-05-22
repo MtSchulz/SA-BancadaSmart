@@ -3,7 +3,7 @@ body {
     display: flex;
     flex-direction: row;
     font-family: Arial, sans-serif;
-    margin: 20px;
+    
     gap: 30px;
     background-color: #f5f5f5;
 }
