@@ -4,10 +4,10 @@
 <head>
     <title>Monitoramento de CLPs</title>
     <meta charset="UTF-8">
-    <link rel="stylesheet" th:href="@{/css/index.css}">
-
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
 </head>
-<div>   <a href="/store">Loja</a></div>
+<div> <a href="/store">Loja</a></div>
+
 <body>
     <div class="container1">
 
@@ -16,6 +16,23 @@
         <h2>Estoque (CLP 1 - Matriz de 28 bytes)</h2>
         <div id="clp1-grid" class="grid"></div>
         <button onclick="updateStock()">Atualizar Estoque</button>
+        <button onclick="enableEditMode()">Editar Estoque</button>
+        <button id="saveBtn" style="display:none;" onclick="saveStock()">Salvar Alterações</button>
+        <button id="cancelBtn" style="display:none;" onclick="cancelEdit()">Cancelar</button>
+
+        <!-- Modal para seleção de cor -->
+        <div id="colorModal" class="modal">
+            <div class="modal-content">
+                <h3>Selecione a Cor</h3>
+                <div>
+                    <button onclick="selectColor(0)">Vazio</button>
+                    <button onclick="selectColor(1)">Preto</button>
+                    <button onclick="selectColor(2)">Vermelho</button>
+                    <button onclick="selectColor(3)">Azul</button>
+                </div>
+                <button onclick="closeModal()">Fechar</button>
+            </div>
+        </div>
 
         <h2>Expedição (CLP 4 - Matriz de 12 bytes)</h2>
         <div id="expedition-grid" class="grid expedition-grid"></div>
@@ -29,25 +46,132 @@
     </div>
 
     <script>
+        let currentEditPosition = null;
+        const stockData = Array(28).fill(0);
+        const originalStockData = [...stockData];
+
+        // Event Source para atualizações em tempo real
         const eventSource = new EventSource('/clp-data-stream');
+        
         eventSource.addEventListener('clp1-data', function (event) {
             const data = JSON.parse(event.data);
-
             const byteArray = Array.isArray(data.value) ? data.value : JSON.parse(data.value);
+            
+            // Atualiza os dados locais
+            byteArray.forEach((val, i) => {
+                stockData[i] = val;
+                originalStockData[i] = val;
+            });
+            
+            updateStockGrid();
+        });
 
-            const grid = document.getElementById('clp1-grid');
-
+        eventSource.addEventListener('expedition-data', function (event) {
+            const data = JSON.parse(event.data);
+            const expeditionArray = Array.isArray(data.value) ? data.value : JSON.parse(data.value);
+            const grid = document.getElementById('expedition-grid');
             grid.innerHTML = '';
 
-            // forEach percorre os 28 valores do array byteArray.
-            byteArray.forEach((val, i) => {
-
+            expeditionArray.forEach((val, i) => {
                 const cell = document.createElement('div');
-                cell.classList.add('cell', `color-${val}`);
-                cell.textContent = i + 1;
+                cell.classList.add('cell');
+                cell.innerHTML = `P${i + 1} = [OP ${val}]`;
+
+                if (val) {
+                    cell.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
+                    cell.style.border = "1px solid red";
+                } else {
+                    cell.style.backgroundColor = "rgba(0, 255, 0, 0.3)";
+                    cell.style.border = "1px solid green";
+                }
+
                 grid.appendChild(cell);
             });
         });
+
+        function updateStockGrid() {
+            const grid = document.getElementById('clp1-grid');
+            grid.innerHTML = '';
+
+            stockData.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell', `color-${val}`);
+                cell.textContent = i + 1;
+                cell.onclick = () => openColorModal(i);
+                grid.appendChild(cell);
+            });
+        }
+
+        function enableEditMode() {
+            document.getElementById('saveBtn').style.display = 'inline-block';
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.querySelector('button[onclick="enableEditMode()"]').style.display = 'none';
+        }
+
+        function cancelEdit() {
+            // Restaura os dados originais
+            stockData.forEach((_, i) => {
+                stockData[i] = originalStockData[i];
+            });
+            updateStockGrid();
+            
+            document.getElementById('saveBtn').style.display = 'none';
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.querySelector('button[onclick="enableEditMode()"]').style.display = 'inline-block';
+        }
+
+        function openColorModal(position) {
+            currentEditPosition = position;
+            document.getElementById('colorModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('colorModal').style.display = 'none';
+        }
+
+        function selectColor(color) {
+            if (currentEditPosition !== null) {
+                stockData[currentEditPosition] = color;
+                updateStockGrid();
+                closeModal();
+            }
+        }
+
+        function saveStock() {
+            const formData = new FormData();
+            stockData.forEach((val, index) => {
+                formData.append('listBlocks', val.toString());
+            });
+        
+            fetch('/estoque/editar', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao salvar');
+                }
+                return response.text();
+            })
+            .then(() => {
+                alert('Estoque salvo com sucesso!');
+                // Atualiza os dados originais
+                stockData.forEach((val, i) => {
+                    originalStockData[i] = val;
+                });
+                
+                document.getElementById('saveBtn').style.display = 'none';
+                document.getElementById('cancelBtn').style.display = 'none';
+                document.querySelector('button[onclick="enableEditMode()"]').style.display = 'inline-block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erro ao salvar: ' + error.message);
+            });
+        }
+
+        // Inicializa a grid
+        updateStockGrid();
 
         // CLP 2
         eventSource.addEventListener('clp2-data', function (event) {
@@ -70,9 +194,9 @@
         document.querySelectorAll('form[id^="clp-write-form"]').forEach(form => {
             form.addEventListener("submit", function (e) {
                 e.preventDefault();
-                
+
                 const formData = new FormData(this);
-                
+
                 fetch('/write-tag', {
                     method: 'POST',
                     body: formData,
@@ -80,20 +204,20 @@
                         'Accept': 'application/json'
                     }
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => { throw new Error(text) });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Success:', data);
-                    // Atualize a UI conforme necessário
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Erro ao enviar dados: ' + error.message);
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => { throw new Error(text) });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Success:', data);
+                        // Atualize a UI conforme necessário
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Erro ao enviar dados: ' + error.message);
+                    });
             });
         });
 

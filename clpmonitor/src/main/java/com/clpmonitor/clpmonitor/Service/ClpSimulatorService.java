@@ -1,9 +1,3 @@
-//------------------------------------------------------------------------------------------
-// Atualização de Eventos do Backend para o Frontend utilizando SSE - Server Sent Events
-// Curso Técnico em Desenvolvimento de Sistemas - SENAI Timbó -SC
-// UC: Desenvolvimento de Sistemas
-// Docente: Gerson Trindade         SET-2024
-//------------------------------------------------------------------------------------------
 package com.clpmonitor.clpmonitor.Service;
 
 import java.io.IOException;
@@ -28,32 +22,25 @@ public class ClpSimulatorService {
 
     private PlcConnector plcConnectorEstoque;
     private PlcConnector plcConnectorExpedicao;
-    public static byte[] indexColorEst = new byte[28];
-    public static byte[] indexColorExp = new byte[12];
+    private byte[] indexColorEst = new byte[28];
+    private byte[] indexColorExp = new byte[12];
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
 
-    // @PostConstruct – Inicialização automática
     @PostConstruct
     public void startSimulation() {
         sendClp1Update();
-
         sendClp2to4Updates();
-
         sendExpeditionUpdate();
     }
 
-    // subscribe() – Adiciona cliente à lista de ouvintes SSE
     public SseEmitter subscribe() {
-        SseEmitter emitter = new SseEmitter(0L);
-
+        SseEmitter emitter = new SseEmitter(30_000L); // Timeout de 30 segundos
         emitters.add(emitter);
-
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
-
         return emitter;
     }
 
@@ -65,9 +52,59 @@ public class ClpSimulatorService {
         sendExpeditionUpdate();
     }
 
-    // sendClp1Update() – Gera 28 bytes (valores de 0 a 3) para o CLP 1
+    public synchronized List<Integer> getEstoque() {
+        List<Integer> estoque = new ArrayList<>();
+        for (byte b : indexColorEst) {
+            estoque.add(b & 0xFF);
+        }
+        return estoque;
+    }
+
+    public synchronized void atualizarPosicaoEstoque(int posicao, int valor) throws Exception {
+        if (posicao < 0 || posicao >= 28) {
+            throw new IllegalArgumentException("Posição inválida. Deve ser entre 0 e 27.");
+        }
+        if (valor < 0 || valor > 3) {
+            throw new IllegalArgumentException("Valor inválido. Deve ser entre 0 e 3.");
+        }
+
+        if (plcConnectorEstoque != null) {
+            plcConnectorEstoque.disconnect();
+        }
+        plcConnectorEstoque = new PlcConnector("10.74.241.10", 102);
+        plcConnectorEstoque.connect();
+
+        plcConnectorEstoque.writeByte(9, 68 + posicao, (byte) valor);
+        indexColorEst[posicao] = (byte) valor;
+        sendClp1Update();
+    }
+
+    public synchronized void atualizarEstoqueCompleto(List<Integer> novosValores) throws Exception {
+        if (novosValores == null || novosValores.size() != 28) {
+            throw new IllegalArgumentException("Deve fornecer exatamente 28 valores.");
+        }
+
+        if (plcConnectorEstoque != null) {
+            plcConnectorEstoque.disconnect();
+        }
+        plcConnectorEstoque = new PlcConnector("10.74.241.10", 102);
+        plcConnectorEstoque.connect();
+
+        byte[] bytes = new byte[28];
+        for (int i = 0; i < 28; i++) {
+            bytes[i] = (byte) novosValores.get(i).intValue();
+        }
+
+        plcConnectorEstoque.writeBlock(9, 68, bytes.length, bytes);
+        System.arraycopy(bytes, 0, indexColorEst, 0, 28);
+        sendClp1Update();
+    }
+
     public void sendClp1Update() {
         try {
+            if (plcConnectorEstoque != null) {
+                plcConnectorEstoque.disconnect();
+            }
             plcConnectorEstoque = new PlcConnector("10.74.241.10", 102);
             plcConnectorEstoque.connect();
             
@@ -76,7 +113,7 @@ public class ClpSimulatorService {
             
             List<Integer> byteArray = new ArrayList<>();
             for (byte b : indexColorEst) {
-                byteArray.add(b & 0xFF); // Converter byte com sinal para int sem sinal
+                byteArray.add(b & 0xFF);
             }
             
             ClpData clp1 = new ClpData(1, byteArray);
@@ -90,6 +127,13 @@ public class ClpSimulatorService {
     public void sendExpeditionUpdate() {
         int values[] = new int[12];
 
+        if (plcConnectorExpedicao != null) {
+            try {
+                plcConnectorExpedicao.disconnect();
+            } catch (Exception e) {
+                System.err.println("Erro ao desconectar plcConnectorExpedicao: " + e.getMessage());
+            }
+        }
         plcConnectorExpedicao = new PlcConnector("10.74.241.40", 102);
         List<Integer> byteArray = new ArrayList<>();
 
@@ -112,6 +156,7 @@ public class ClpSimulatorService {
 
         for (int i = 0; i < 12; i++) {
             byteArray.add(values[i]);
+            indexColorExp[i] = (byte) values[i];
         }
 
         ClpData expeditionData = new ClpData(5, byteArray);
@@ -120,15 +165,12 @@ public class ClpSimulatorService {
 
     private void sendClp2to4Updates() {
         Random rand = new Random();
-
         sendToEmitters("clp2-data", new ClpData(2, rand.nextInt(100)));
         sendToEmitters("clp3-data", new ClpData(3, rand.nextInt(100)));
         sendToEmitters("clp4-data", new ClpData(4, rand.nextInt(100)));
     }
 
-    // sendToEmitters() – Envia um evento SSE para todos os clientes
     private void sendToEmitters(String eventName, ClpData clpData) {
-        // Percorre todos os SseEmitters conectados.
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(clpData));
@@ -137,5 +179,4 @@ public class ClpSimulatorService {
             }
         }
     }
-
 }
