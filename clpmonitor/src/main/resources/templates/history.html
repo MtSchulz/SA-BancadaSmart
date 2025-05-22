@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <title>Histórico de Pedidos</title>
+    <link rel="stylesheet" href="/css/store.css">
+</head>
+<body>
+    <!-- SideBar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Bancada 4.0</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="store.html">
+                        <span class="material-symbols-rounded">home</span>
+                        <span>Início</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="index.html">
+                        <span class="material-symbols-rounded">form</span>
+                        <span>Início</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="history.html" class="active">
+                        <span class="material-symbols-rounded">history</span>
+                        <span>Histórico</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="status.html">
+                        <span class="material-symbols-rounded">monitoring</span>
+                        <span>Status</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="settings.html">
+                        <span class="material-symbols-rounded">settings</span>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-container">
+        <div class="container">
+            <header class="header">
+                <h1>Histórico de Pedidos</h1>
+            </header>
+
+            <main class="main-content">
+                <div class="history-controls">
+                    <div class="filter-group">
+                        <label for="dataInicio">De:</label>
+                        <input type="date" id="dataInicio" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label for="dataFim">Até:</label>
+                        <input type="date" id="dataFim" class="form-control">
+                    </div>
+                    <button class="btn btn-primary" onclick="filtrarHistorico()">
+                        <span class="material-symbols-rounded">filter_alt</span>
+                        Filtrar
+                    </button>
+                    <button class="btn btn-secondary" onclick="limparFiltros()">
+                        <span class="material-symbols-rounded">clear_all</span>
+                        Limpar
+                    </button>
+                </div>
+
+                <div class="history-section">
+                    <div class="history-header">
+                        <h2>Registros de Pedidos</h2>
+                        <div class="history-stats">
+                            <span class="material-symbols-rounded">summarize</span>
+                            <span id="totalPedidos">0</span> pedidos encontrados
+                        </div>
+                    </div>
+                    <div id="listaHistorico" class="history-list"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/pedido.js"></script>
+    <script>
+        // Funções específicas do histórico
+        function filtrarHistorico() {
+            const inicio = document.getElementById('dataInicio').value;
+            const fim = document.getElementById('dataFim').value;
+            // Implementar lógica de filtro
+            console.log('Filtrando de', inicio, 'até', fim);
+            carregarHistorico();
+        }
+
+        function limparFiltros() {
+            document.getElementById('dataInicio').value = '';
+            document.getElementById('dataFim').value = '';
+            carregarHistorico();
+        }
+
+        function carregarHistorico() {
+            // Simulação de dados - substituir por chamada real à API
+            const historico = [
+                {
+                    id: 'ORD-2023-001',
+                    data: '2023-10-15',
+                    tipo: 'Triplo',
+                    status: 'Concluído',
+                    blocos: [
+                        { cor: 'Vermelho', laminas: ['Azul', 'Verde', 'Amarelo'] },
+                        { cor: 'Preto', laminas: ['Branco', 'Vermelho', 'Azul'] },
+                        { cor: 'Azul', laminas: ['Amarelo', 'Preto', 'Verde'] }
+                    ]
+                },
+                {
+                    id: 'ORD-2023-002',
+                    data: '2023-10-14',
+                    tipo: 'Duplo',
+                    status: 'Pendente',
+                    blocos: [
+                        { cor: 'Vermelho', laminas: ['Azul', 'Verde', 'Amarelo'] },
+                        { cor: 'Preto', laminas: ['Branco', 'Vermelho', 'Azul'] }
+                    ]
+                }
+            ];
+
+            const lista = document.getElementById('listaHistorico');
+            lista.innerHTML = '';
+            
+            historico.forEach(pedido => {
+                const pedidoDiv = document.createElement('div');
+                pedidoDiv.className = 'history-item';
+                pedidoDiv.innerHTML = `
+                    <div class="history-item-header">
+                        <span class="history-id">${pedido.id}</span>
+                        <span class="history-date">${formatarData(pedido.data)}</span>
+                        <span class="history-status ${pedido.status.toLowerCase()}">${pedido.status}</span>
+                    </div>
+                    <div class="history-item-content">
+                        <div class="history-type">Tipo: ${pedido.tipo}</div>
+                        ${gerarDetalhesBlocos(pedido.blocos)}
+                    </div>
+                    <div class="history-item-actions">
+                        <button class="btn btn-small" onclick="detalharPedido('${pedido.id}')">
+                            <span class="material-symbols-rounded">visibility</span>
+                            Detalhes
+                        </button>
+                    </div>
+                `;
+                lista.appendChild(pedidoDiv);
+            });
+
+            document.getElementById('totalPedidos').textContent = historico.length;
+        }
+
+        function formatarData(data) {
+            return new Date(data).toLocaleDateString('pt-BR');
+        }
+
+        function gerarDetalhesBlocos(blocos) {
+            return blocos.map((bloco, index) => `
+                <div class="history-block">
+                    <strong>Bloco ${index + 1}:</strong> ${bloco.cor}
+                    <div class="history-laminas">
+                        ${bloco.laminas.map(lamina => `<span class="lamina-badge">${lamina}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function detalharPedido(id) {
+            alert(`Detalhes do pedido ${id}`);
+            // Implementar abertura de modal ou redirecionamento
+        }
+
+        // Carrega o histórico quando a página é aberta
+        window.onload = function() {
+            carregarHistorico();
+        };
+    </script>
+</body>
+</html>

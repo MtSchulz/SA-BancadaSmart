@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,38 +11,115 @@
 </head>
 
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Pedido de Blocos</h1>
-        </header>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Bancada 4.0</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li>
+                    <a href="store.html" class="active">
+                        <span class="material-symbols-rounded">home</span>
+                        <span>Início</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="index.html">
+                        <span class="material-symbols-rounded">form</span>
+                        <span>Formulário</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="history.html">
+                        <span class="material-symbols-rounded">history</span>
+                        <span>Histórico</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="status.html">
+                        <span class="material-symbols-rounded">monitoring</span>
+                        <span>Status</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="settings.html">
+                        <span class="material-symbols-rounded">settings</span>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
 
-        <main class="main-content">
-            <div class="form-section">
-                <div class="form-group">
-                    <label for="tipoPedido">Tipo de Pedido:</label>
-                    <select id="tipoPedido" onchange="renderBlocos()" class="form-select">
-                        <option value="simples">Simples (1 bloco)</option>
-                        <option value="duplo">Duplo (2 blocos)</option>
-                        <option value="triplo">Triplo (3 blocos)</option>
-                    </select>
+    <!-- Conteúdo Principal -->
+    <div class="main-container">
+        <div class="container">
+            <header class="header">
+                <h1>Pedido de Blocos</h1>
+            </header>
+
+            <main class="main-content">
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="tipoPedido">Tipo de Pedido:</label>
+                        <select id="tipoPedido" onchange="renderBlocos()" class="form-select">
+                            <option value="simples">Simples (1 bloco)</option>
+                            <option value="duplo">Duplo (2 blocos)</option>
+                            <option value="triplo">Triplo (3 blocos)</option>
+                        </select>
+                    </div>
+
+                    <div id="blocosContainer"></div>
+
+                    <button class="btn btn-primary" onclick="enviarPedido()">Enviar Pedido</button>
                 </div>
 
-                <div id="blocosContainer"></div>
+                <div class="divider"></div>
 
-                <button class="btn btn-primary" onclick="enviarPedido()">Enviar Pedido</button>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="orders-section">
-                <button class="btn btn-secondary" onclick="listarPedidos()">Listar Pedidos</button>
-                <h2>Pedidos Recebidos</h2>
-                <div id="listaPedidos" class="orders-list"></div>
-            </div>
-        </main>
+                <div class="orders-section">
+                    <button class="btn btn-secondary" onclick="listarPedidos()">Listar Pedidos</button>
+                    <h2>Pedidos Recebidos</h2>
+                    <div id="listaPedidos" class="orders-list"></div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <script src="/js/pedido.js"></script>
-</body>
 
+    <!-- Script Sidebar -->
+    <script>
+        // Adiciona funcionalidade à sidebar
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnMenuButton = event.target.closest('.menu-button');
+            
+            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuButton) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        function addMenuButton() {
+            if (window.innerWidth <= 768) {
+                const header = document.querySelector('.header');
+                if (!document.querySelector('.menu-button')) {
+                    const menuButton = document.createElement('button');
+                    menuButton.className = 'menu-button btn btn-secondary';
+                    menuButton.innerHTML = '<span class="material-symbols-rounded">menu</span>';
+                    menuButton.onclick = toggleSidebar;
+                    header.insertBefore(menuButton, header.firstChild);
+                }
+            }
+        }
+
+        window.addEventListener('resize', addMenuButton);
+        window.addEventListener('load', addMenuButton);
+    </script>
+</body>
 </html>
