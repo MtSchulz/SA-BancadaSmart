@@ -33,6 +33,11 @@ public class ClpController {
         return "index";
     }
 
+    @GetMapping("/history")
+    public String history() {
+        return "history";
+    }
+
     @GetMapping("/clp-data-stream")
     public SseEmitter streamClpData() {
         return simulatorService.subscribe();

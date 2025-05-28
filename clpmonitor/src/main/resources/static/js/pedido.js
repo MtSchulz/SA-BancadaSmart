@@ -326,4 +326,117 @@ function listarPedidos() {
         });
 }
 
+// Script Sidebar
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnMenuButton = event.target.closest('.menu-button');
+            
+            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuButton) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        function addMenuButton() {
+            if (window.innerWidth <= 768) {
+                const header = document.querySelector('.header');
+                if (!document.querySelector('.menu-button')) {
+                    const menuButton = document.createElement('button');
+                    menuButton.className = 'menu-button btn btn-secondary';
+                    menuButton.innerHTML = '<span class="material-symbols-rounded">menu</span>';
+                    menuButton.onclick = toggleSidebar;
+                    header.insertBefore(menuButton, header.firstChild);
+                }
+            }
+        }
+
+        window.addEventListener('resize', addMenuButton);
+        window.addEventListener('load', addMenuButton);
+
+// Funções específicas para a página de histórico
+function listarHistorico() {
+    fetch("/store/orders/history")
+        .then(response => response.json())
+        .then(data => {
+            const listaContainer = document.getElementById("listaHistorico");
+            listaContainer.innerHTML = "";
+            
+            if (data.length === 0) {
+                listaContainer.innerHTML = "<p>Nenhum pedido histórico encontrado.</p>";
+                document.getElementById("totalPedidos").textContent = "0";
+                return;
+            }
+
+            document.getElementById("totalPedidos").textContent = data.length;
+            
+            data.forEach((pedido, index) => {
+                const pedidoDiv = document.createElement("div");
+                pedidoDiv.classList.add("pedido");
+                
+                // Adiciona data/hora se existir no pedido
+                const dataPedido = pedido.data ? new Date(pedido.data).toLocaleString() : "Data não disponível";
+                
+                pedidoDiv.innerHTML = `
+                    <div class="pedido-header">
+                        <h3>Pedido #${pedido.id || index + 1} - ${dataPedido}</h3>
+                        <span class="pedido-tipo">Tipo: ${pedido.tipo}</span>
+                    </div>
+                `;
+
+                pedido.blocos.forEach((bloco, i) => {
+                    const blocoDiv = document.createElement("div");
+                    blocoDiv.classList.add("bloco-info");
+                    
+                    blocoDiv.innerHTML = `
+                        <strong>Bloco ${i + 1}</strong> - Cor: ${bloco.cor || "Não especificada"}
+                        <div class="laminas-container">
+                            ${bloco.laminas.map((lamina, j) => `
+                                <div class="lamina-info">
+                                    <span>Lâmina ${j + 1}:</span>
+                                    <span>Cor: ${lamina.cor || "-"}</span>
+                                    <span>Padrão: ${lamina.padrao || "-"}</span>
+                                </div>
+                            `).join("")}
+                        </div>
+                    `;
+
+                    pedidoDiv.appendChild(blocoDiv);
+                });
+
+                listaContainer.appendChild(pedidoDiv);
+            });
+        })
+        .catch(error => {
+            console.error("Erro ao carregar histórico:", error);
+            document.getElementById("listaHistorico").innerHTML = 
+                "<p>Erro ao carregar histórico de pedidos.</p>";
+        });
+}
+
+function filtrarHistorico() {
+    const dataInicio = document.getElementById('dataInicio').value;
+    const dataFim = document.getElementById('dataFim').value;
+    const tipo = document.getElementById('filtroTipo').value;
+    
+    // Aqui você implementaria a lógica de filtro
+    // Por enquanto apenas atualiza a lista
+    listarHistorico();
+    
+    console.log(`Filtrando por: ${dataInicio} até ${dataFim}, Tipo: ${tipo}`);
+}
+
+function limparFiltros() {
+    document.getElementById('dataInicio').value = '';
+    document.getElementById('dataFim').value = '';
+    document.getElementById('filtroTipo').value = '';
+    listarHistorico();
+}
+
+// Carrega o histórico ao abrir a página
+document.addEventListener('DOMContentLoaded', listarHistorico);
+
 window.onload = renderBlocos;
