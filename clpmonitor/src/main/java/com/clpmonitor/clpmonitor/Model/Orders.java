@@ -12,9 +12,19 @@ public class Orders {
     private String productionOrder;
 
     // getters e setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getProductionOrder() { return productionOrder; }
-    public void setProductionOrder(String productionOrder) { this.productionOrder = productionOrder; }
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getProductionOrder() {
+        return productionOrder;
+    }
+
+    public String setProductionOrder(String productionOrder) {
+        return this.productionOrder = productionOrder;
+    }
 }

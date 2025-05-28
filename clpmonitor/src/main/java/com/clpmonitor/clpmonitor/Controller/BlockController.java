@@ -8,14 +8,17 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.clpmonitor.clpmonitor.Model.Block;
+import com.clpmonitor.clpmonitor.Model.Storage;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
 import com.clpmonitor.clpmonitor.Repository.StorageRepository;
-import org.springframework.ui.Model;
+
+import jakarta.annotation.PostConstruct;
 
 @Controller
 public class BlockController {
@@ -25,6 +28,22 @@ public class BlockController {
 
     @Autowired
     private StorageRepository storageRepository;
+
+    @PostConstruct
+    public void init() {
+        // Verifica se os storages padrão existem
+        if (storageRepository.count() == 0) {
+            Storage estoque = new Storage();
+            estoque.setName("Estoque");
+            estoque.setCapacity(28);
+            storageRepository.save(estoque);
+
+            Storage expedicao = new Storage();
+            expedicao.setName("Expedição");
+            expedicao.setCapacity(12);
+            storageRepository.save(expedicao);
+        }
+    }
 
     @GetMapping("/blocks/estoque")
     public String listBlocks(Model model) {
@@ -71,7 +90,7 @@ public class BlockController {
             }
         }
 
-        return "redirect:/estoque";
+        return "redirect:blocks/estoque";
     }
 
     private void prepareStockData(Model model, boolean editMode) {
@@ -124,4 +143,5 @@ public class BlockController {
 
         return estoque;
     }
+
 }
