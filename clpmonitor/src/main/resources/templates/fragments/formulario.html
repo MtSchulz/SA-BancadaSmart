@@ -47,24 +47,26 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const type = this.value;
             const selectElement = document.querySelector('select[name="type"]');
             const bitField = document.getElementById('bitNumberField');
             const sizeField = document.getElementById('sizeField');
+            
             if (selectElement) {
-                selectElement.addEventListener('change', function () {
-                    // Mostrar/ocultar campos conforme o tipo
+                // Função para atualizar campos
+                function updateFields() {
+                    const type = selectElement.value;
                     bitField.style.display = type === 'BIT' ? 'block' : 'none';
                     sizeField.style.display = type === 'STRING' || type === 'BLOCK' ? 'block' : 'none';
-
-                    // Tornar obrigatório conforme necessário
                     bitField.required = type === 'BIT';
                     sizeField.required = type === 'STRING' || type === 'BLOCK';
-                });
-            } else {
-                console.error("Elemento select não encontrado!");
+                }
+        
+                // Atualizar campos quando o select mudar
+                selectElement.addEventListener('change', updateFields);
+                
+                // Atualizar campos no carregamento inicial
+                updateFields();
             }
-
         });
     </script>
 </div>
