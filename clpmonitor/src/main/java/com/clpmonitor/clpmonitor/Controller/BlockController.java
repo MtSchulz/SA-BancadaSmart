@@ -4,14 +4,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.clpmonitor.clpmonitor.Model.Block;
 import com.clpmonitor.clpmonitor.Model.Storage;
@@ -58,39 +63,55 @@ public class BlockController {
     }
 
     @PostMapping("/estoque/editar")
-    public String saveBlock(@RequestParam List<String> listBlocks) {
-        Long storageId = storageRepository.findAll().get(0).getId();
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveBlock(@RequestBody Map<String, List<Integer>> request) {
+        Map<String, Object> response = new HashMap<>();
 
-        List<Block> existingBlocks = blockRepository.findAll();
-        Map<Integer, Block> blocksByPosition = new HashMap<>();
-
-        for (Block block : existingBlocks) {
-            if (block.getStorage() != null && block.getStorage().getId() == storageId) {
-                blocksByPosition.put(block.getPosition(), block);
+        try {
+            List<Integer> listBlocks = request.get("listBlocks");
+            if (listBlocks == null) {
+                throw new IllegalArgumentException("Lista de blocos não fornecida");
             }
-        }
 
-        for (int i = 0; i < listBlocks.size(); i++) {
-            int position = i + 1;
-            int color = Integer.parseInt(listBlocks.get(i));
+            Storage storage = storageRepository.findById(1L) // ID fixo para estoque
+                    .orElseThrow(() -> new RuntimeException("Storage de estoque não encontrado"));
 
-            Block block = blocksByPosition.get(position);
-            if (color == 0) {
-                if (block != null) {
-                    blockRepository.delete(block);
+            // Busca otimizada
+            List<Block> existingBlocks = blockRepository.findByStorage_Id(storage.getId());
+            Map<Integer, Block> blocksByPosition = existingBlocks.stream()
+                    .collect(Collectors.toMap(Block::getPosition, Function.identity()));
+
+            for (int i = 0; i < listBlocks.size(); i++) {
+                int position = i + 1;
+                int color = listBlocks.get(i);
+
+                if (color == 0) {
+                    // Remove se existir
+                    if (blocksByPosition.containsKey(position)) {
+                        blockRepository.delete(blocksByPosition.get(position));
+                    }
+                } else {
+                    Block block = blocksByPosition.computeIfAbsent(position, pos -> {
+                        Block newBlock = new Block();
+                        newBlock.setPosition(position);
+                        newBlock.setStorage(storage);
+                        return newBlock;
+                    });
+                    block.setColor(color);
+                    blockRepository.save(block);
                 }
-            } else {
-                if (block == null) {
-                    block = new Block();
-                    block.setStorage(storageRepository.findAll().get(0));
-                    block.setPosition(position);
-                }
-                block.setColor(color);
-                blockRepository.save(block);
             }
-        }
 
-        return "redirect:blocks/estoque";
+            response.put("status", "success");
+            response.put("message", "Estoque atualizado com sucesso");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Erro ao salvar estoque");
+            response.put("details", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     private void prepareStockData(Model model, boolean editMode) {

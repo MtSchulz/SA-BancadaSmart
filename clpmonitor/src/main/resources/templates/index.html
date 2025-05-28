@@ -226,38 +226,44 @@
             }
         }
 
-        async function saveStock() {
-            try {
-                const response = await fetch('/estoque/editar', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ listBlocks: stockData })
-                });
+      async function saveStock() {
+    const saveBtn = document.getElementById('saveBtn');
+    try {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Salvando...';
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.message || 'Erro ao salvar');
-                }
+        const response = await fetch('/estoque/editar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                listBlocks: stockData
+            })
+        });
 
-                const result = await response.json();
-                console.log('Salvo com sucesso:', result);
-
-                // Atualiza os dados originais após salvar
-                stockData.forEach((val, i) => {
-                    originalStockData[i] = val;
-                });
-
-                toggleEditButtons(false);
-                alert('Estoque salvo com sucesso!');
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                alert('Erro ao salvar: ' + error.message);
-                cancelEdit();
-            }
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.details || result.message || 'Erro desconhecido');
         }
 
+        // Atualiza os dados originais
+        stockData.forEach((val, i) => originalStockData[i] = val);
+        
+        alert(result.message);
+        toggleEditButtons(false);
+        
+    } catch (error) {
+        console.error('Erro ao salvar:', error);
+        alert('Erro: ' + error.message);
+        // Reverte para os dados originais
+        cancelEdit();
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salvar';
+    }
+}
         // Funções auxiliares para CLP
         function update() {
             fetch('/update', { method: 'POST' })
