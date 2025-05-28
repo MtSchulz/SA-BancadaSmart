@@ -22,8 +22,8 @@ public class Block {
     private Storage storage;
 
     @ManyToOne
-    @JoinColumn(name = "production_order_id") 
-    private Orders productionOrders;
+    @JoinColumn(name = "production_order_id")
+    private Orders productionOrder;
 
     // getters e setters
     public Long getId() {
@@ -59,10 +59,10 @@ public class Block {
     }
 
     public Orders getProductionOrder() {
-        return productionOrders;
+        return productionOrder;
     }
 
-    public void setProductionOrder(Orders productionOrders) {
-        this.productionOrders = productionOrders;
+    public void setProductionOrder(Orders productionOrder) {
+        this.productionOrder = productionOrder;
     }
 }
