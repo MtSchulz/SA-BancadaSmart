@@ -84,13 +84,9 @@ ORDER BY
     -- Limpa os dados mas mantém a estrutura das tabelas
 USE smartdb;
 
--- Desativa verificação de chaves estrangeiras temporariamente
-SET FOREIGN_KEY_CHECKS = 0;
 
 -- Limpa cada tabela individualmente
 TRUNCATE TABLE block;
 TRUNCATE TABLE orders;
 TRUNCATE TABLE storage;
 
--- Reativa verificação de chaves estrangeiras
-SET FOREIGN_KEY_CHECKS = 1;
