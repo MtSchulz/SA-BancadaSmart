@@ -27,7 +27,70 @@ CREATE TABLE block (
   CONSTRAINT FK_Block_Orders FOREIGN KEY (production_order_id) REFERENCES orders (id)
 );
 
-SELECT id, position, color, storage_id, production_order_id
-FROM block
-ORDER BY position;
+INSERT INTO storage (name, capacity) VALUES 
+('Estoque', 28),   -- Este terá id = 1 (para posições 1-28)
+('Expedição', 12);  -- Este terá id = 2 (para posições 1-12)
 
+-- Ver todos os blocos com informações de storage e orders (se existirem)
+SELECT 
+    b.id,
+    b.position,
+    b.color,
+    s.name AS storage_name,
+    o.production_order
+FROM 
+    block b
+JOIN 
+    storage s ON b.storage_id = s.id
+LEFT JOIN 
+    orders o ON b.production_order_id = o.id
+ORDER BY 
+ b.position;
+
+-- TESTE MANUAL
+INSERT INTO block (position, color, storage_id) VALUES 
+(1, 2, 1);  -- Posição 1, cor Vermelha (2), no Estoque (storage_id=1)
+INSERT INTO block (position, color, storage_id) VALUES 
+(2, 1, 1);   -- Posição 2, cor Vazia (0), no Estoque (storage_id=1)
+
+-- Verificar se apareceu
+SELECT * FROM block WHERE position = 1 AND storage_id = 1;
+
+-- Limpar teste
+DELETE FROM block WHERE position = 2 AND storage_id = 1;
+
+
+SELECT 
+    position,
+    color,
+    CASE color
+        WHEN 0 THEN 'Vazio'
+        WHEN 1 THEN 'Preto'
+        WHEN 2 THEN 'Vermelho'
+        WHEN 3 THEN 'Azul'
+        ELSE 'Desconhecido'
+    END AS descricao_cor
+FROM 
+    block
+WHERE 
+    storage_id = 1
+ORDER BY 
+    position;
+    
+    SELECT * FROM block WHERE storage_id = 1 ORDER BY position;
+    
+    
+    
+    -- Limpa os dados mas mantém a estrutura das tabelas
+USE smartdb;
+
+-- Desativa verificação de chaves estrangeiras temporariamente
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Limpa cada tabela individualmente
+TRUNCATE TABLE block;
+TRUNCATE TABLE orders;
+TRUNCATE TABLE storage;
+
+-- Reativa verificação de chaves estrangeiras
+SET FOREIGN_KEY_CHECKS = 1;
