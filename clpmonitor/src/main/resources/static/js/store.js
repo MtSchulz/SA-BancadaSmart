@@ -4,46 +4,59 @@ function changePedidoView(id) {
   var blockColor = $("#block-color-" + id).val();
   
   if (blockColor !== "") {
-    $("#bloco-" + id).attr("src", "assets/bloco/rBlocoCor" + blockColor + ".png");
+    // Verifica se a cor ainda está disponível
+    fetch(`/api/verificar-cor/${blockColor}`)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.disponivel) {
+          $("#block-color-" + id).val("");
+          alert("Esta cor não está mais disponível");
+          changePedidoView(id);
+          return;
+        }
 
-    $("#l1-color-" + id).prop("disabled", false);
-    $("#l2-color-" + id).prop("disabled", false);
-    $("#l3-color-" + id).prop("disabled", false);
+        $("#bloco-" + id).attr("src", "assets/bloco/rBlocoCor" + blockColor + ".png");
 
-    $("#send-" + id).prop("disabled", false);  // Ativa o botão de envio quando a cor é selecionada
+        $("#l1-color-" + id).prop("disabled", false);
+        $("#l2-color-" + id).prop("disabled", false);
+        $("#l3-color-" + id).prop("disabled", false);
 
-    // Outros ajustes de padrões
-    var l1Color = $("#l1-color-" + id).val();
-    var l2Color = $("#l2-color-" + id).val();
-    var l3Color = $("#l3-color-" + id).val();
+        $("#send-" + id).prop("disabled", false);
 
-    var l1Pattern = $("#l1-pattern-" + id).val();
-    var l2Pattern = $("#l2-pattern-" + id).val();
-    var l3Pattern = $("#l3-pattern-" + id).val();
+        // Outros ajustes de padrões
+        var l1Color = $("#l1-color-" + id).val();
+        var l2Color = $("#l2-color-" + id).val();
+        var l3Color = $("#l3-color-" + id).val();
 
-    var isSpun = $("#pedido-view" + id).data("isSpun");
+        var l1Pattern = $("#l1-pattern-" + id).val();
+        var l2Pattern = $("#l2-pattern-" + id).val();
+        var l3Pattern = $("#l3-pattern-" + id).val();
 
-    if (isSpun) {
-      $("#lamina" + id + "-3").attr("src", l1Color ? "assets/laminas/lamina3-" + l1Color + ".png" : "#");
-      $("#lamina" + id + "-1").attr("src", l3Color ? "assets/laminas/lamina1-" + l3Color + ".png" : "#");
+        var isSpun = $("#pedido-view" + id).data("isSpun");
 
-      $("#padrao" + id + "-3").attr("src", l3Pattern ? "assets/padroes/padrao" + l3Pattern + "-1.png" : "#").prop("hidden", false);
-      $("#padrao" + id + "-1").attr("src", l1Pattern ? "assets/padroes/padrao" + l1Pattern + "-1.png" : "#").prop("hidden", true);
-    } else {
-      $("#lamina" + id + "-1").attr("src", l1Color ? "assets/laminas/lamina1-" + l1Color + ".png" : "#");
-      $("#lamina" + id + "-3").attr("src", l3Color ? "assets/laminas/lamina3-" + l3Color + ".png" : "#");
+        if (isSpun) {
+          $("#lamina" + id + "-3").attr("src", l1Color ? "assets/laminas/lamina3-" + l1Color + ".png" : "#");
+          $("#lamina" + id + "-1").attr("src", l3Color ? "assets/laminas/lamina1-" + l3Color + ".png" : "#");
 
-      $("#padrao" + id + "-1").attr("src", l1Pattern ? "assets/padroes/padrao" + l1Pattern + "-1.png" : "#").prop("hidden", false);
-      $("#padrao" + id + "-3").attr("src", l3Pattern ? "assets/padroes/padrao" + l3Pattern + "-1.png" : "#").prop("hidden", true);
-    }
+          $("#padrao" + id + "-3").attr("src", l3Pattern ? "assets/padroes/padrao" + l3Pattern + "-1.png" : "#").prop("hidden", false);
+          $("#padrao" + id + "-1").attr("src", l1Pattern ? "assets/padroes/padrao" + l1Pattern + "-1.png" : "#").prop("hidden", true);
+        } else {
+          $("#lamina" + id + "-1").attr("src", l1Color ? "assets/laminas/lamina1-" + l1Color + ".png" : "#");
+          $("#lamina" + id + "-3").attr("src", l3Color ? "assets/laminas/lamina3-" + l3Color + ".png" : "#");
 
-    $("#lamina" + id + "-2").attr("src", l2Color ? "assets/laminas/lamina2-" + l2Color + ".png" : "#");
-    $("#padrao" + id + "-2").attr("src", l2Pattern ? "assets/padroes/padrao" + l2Pattern + "-2.png" : "#");
+          $("#padrao" + id + "-1").attr("src", l1Pattern ? "assets/padroes/padrao" + l1Pattern + "-1.png" : "#").prop("hidden", false);
+          $("#padrao" + id + "-3").attr("src", l3Pattern ? "assets/padroes/padrao" + l3Pattern + "-1.png" : "#").prop("hidden", true);
+        }
 
-    $("#l1-pattern-" + id).attr("disabled", !l1Color);
-    $("#l2-pattern-" + id).attr("disabled", !l2Color);
-    $("#l3-pattern-" + id).attr("disabled", !l3Color);
+        $("#lamina" + id + "-2").attr("src", l2Color ? "assets/laminas/lamina2-" + l2Color + ".png" : "#");
+        $("#padrao" + id + "-2").attr("src", l2Pattern ? "assets/padroes/padrao" + l2Pattern + "-2.png" : "#");
 
+        $("#l1-pattern-" + id).attr("disabled", !l1Color);
+        $("#l2-pattern-" + id).attr("disabled", !l2Color);
+        $("#l3-pattern-" + id).attr("disabled", !l3Color);
+
+      })
+      .catch(error => console.error("Erro ao verificar cor:", error));
   } else {
     $("#l1-color-" + id).prop("disabled", true);
     $("#l2-color-" + id).prop("disabled", true);
@@ -52,7 +65,7 @@ function changePedidoView(id) {
     $("#l2-pattern-" + id).prop("disabled", true);
     $("#l3-pattern-" + id).prop("disabled", true);
 
-    $("#send-" + id).prop("disabled", true);  // Desativa o botão de envio
+    $("#send-" + id).prop("disabled", true);
 
     $("#bloco-" + id).attr("src", "assets/bloco/rBlocoCor0.png");
     $("#lamina" + id + "-1").attr("src", "#");
@@ -63,7 +76,6 @@ function changePedidoView(id) {
     $("#padrao" + id + "-3").attr("src", "#");
   }
 }
-
 
 function spin(id) {
   const $view = $('#pedido-view' + id);
@@ -92,10 +104,13 @@ function spin(id) {
   $lamina3.attr('src', newSrc3);
 }
 
-let blocoCount = 1; // Contador global de blocos
+let blocoCount = 1;
 
 $(document).ready(function () {
   const MAX_BLOCOS = 3;
+
+  // Carrega as cores disponíveis ao iniciar
+  carregarCoresDisponiveis();
 
   // Função para adicionar o botão de excluir
   function addDeleteButton(section) {
@@ -130,7 +145,7 @@ $(document).ready(function () {
     const newId = "section-bloco-" + blocoCount;
     original.attr("id", newId);
 
-    // Atualiza os IDs e atributos (mantenha seu código existente aqui)
+    // Atualiza os IDs e atributos
     original.find("*").each(function () {
       const el = $(this);
       ["id", "for", "name", "onclick", "onchange"].forEach(attr => {
@@ -146,7 +161,7 @@ $(document).ready(function () {
       });
     });
 
-    // Configurações do bloco (mantenha seu código existente aqui)
+    // Configurações do bloco
     const pedidoView = original.find(".pedido-view");
     pedidoView.attr("id", "pedido-view" + blocoCount);
     pedidoView.data("isSpun", false);
@@ -179,14 +194,14 @@ $(document).ready(function () {
       original.after('<section class="plus"><span class="material-symbols-rounded">add</span></section>');
     }
 
-    $("#block-color-" + blocoCount).prop("disabled", false);
+    // Atualiza as cores disponíveis para o novo bloco
+    carregarCoresDisponiveis();
   });
 
   // Delegação de eventos para os botões de excluir dinâmicos
   $(document).on('click', '.delete-btn', function() {
     $(this).closest('section[id^="section-bloco-"]').remove();
     
-    // Se não houver mais .plus, adiciona um após o último bloco
     if ($('.plus').length === 0) {
       $('section[id^="section-bloco-"]').last().after(
         '<section class="plus"><span class="material-symbols-rounded">add</span></section>'
@@ -195,3 +210,86 @@ $(document).ready(function () {
     checkAndInsertHidden();
   });
 });
+
+// Função para carregar cores disponíveis do backend
+function carregarCoresDisponiveis() {
+  fetch('/api/cores-disponiveis')
+    .then(response => response.json())
+    .then(cores => {
+      $('[id^="block-color-"]').each(function() {
+        const select = $(this);
+        const currentValue = select.val();
+        
+        // Mantém a primeira opção e remove as demais
+        select.find('option:not(:first)').remove();
+        
+        // Adiciona as novas opções
+        cores.forEach(cor => {
+          select.append(`<option value="${cor.codigoCor}">${cor.nomeCor}</option>`);
+        });
+        
+        // Restaura o valor selecionado se ainda estiver disponível
+        if (currentValue && cores.some(c => c.codigoCor == currentValue)) {
+          select.val(currentValue);
+        }
+      });
+    })
+    .catch(error => console.error('Erro ao carregar cores:', error));
+}
+
+// Função para enviar pedido
+function enviarPedido() {
+  const blocos = [];
+  
+  $('section[id^="section-bloco-"]').each(function(index) {
+    const id = index + 1;
+    const blocoData = {
+      color: $("#block-color-" + id).val(),
+      l1Color: $("#l1-color-" + id).val(),
+      l2Color: $("#l2-color-" + id).val(),
+      l3Color: $("#l3-color-" + id).val(),
+      l1Pattern: $("#l1-pattern-" + id).val(),
+      l2Pattern: $("#l2-pattern-" + id).val(),
+      l3Pattern: $("#l3-pattern-" + id).val()
+    };
+    blocos.push(blocoData);
+  });
+
+  fetch('/api/pedidos', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ blocos })
+  })
+  .then(response => response.json())
+  .then(data => {
+    alert('Pedido enviado com sucesso!');
+    carregarCoresDisponiveis(); // Atualiza a lista de cores após envio
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao enviar pedido');
+  });
+}
+
+// Função para listar pedidos
+function listarPedidos() {
+  fetch('/api/pedidos')
+    .then(response => response.json())
+    .then(pedidos => {
+      const lista = $('#listaPedidos');
+      lista.empty();
+      
+      pedidos.forEach(pedido => {
+        lista.append(`
+          <div class="pedido">
+            <h3>Pedido #${pedido.id}</h3>
+            <p>Data: ${new Date(pedido.data).toLocaleString()}</p>
+            <p>Status: ${pedido.status}</p>
+          </div>
+        `);
+      });
+    })
+    .catch(error => console.error('Erro ao carregar pedidos:', error));
+}

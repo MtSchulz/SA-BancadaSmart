@@ -1,52 +1,56 @@
 package com.clpmonitor.clpmonitor.Model;
 
+import com.mysql.cj.x.protobuf.MysqlxCrud.Order;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "block")
 public class Block {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private int position;
-
-    private int color;
-
+    private Integer id;
+    
+    private Integer position;
+    private Integer color;
+    
     @ManyToOne
-    @JoinColumn(name = "StorageId")
+    @JoinColumn(name = "storage_id")
     private Storage storage;
-
+    
     @ManyToOne
     @JoinColumn(name = "production_order_id")
-    private Orders productionOrder;
+    private Order productionOrder;
 
+    
     // getters e setters
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
-    public int getPosition() {
+    public Integer getPosition() {
         return position;
     }
 
-    public void setPosition(int position) {
+    public void setPosition(Integer position) {
         this.position = position;
     }
 
-    public int getColor() {
+    public Integer getColor() {
         return color;
     }
 
-    public void setColor(int color) {
+    public void setColor(Integer color) {
         this.color = color;
     }
 
@@ -58,11 +62,11 @@ public class Block {
         this.storage = storage;
     }
 
-    public Orders getProductionOrder() {
+    public Order getProductionOrder() {
         return productionOrder;
     }
 
-    public void setProductionOrder(Orders productionOrder) {
+    public void setProductionOrder(Order productionOrder) {
         this.productionOrder = productionOrder;
-    }
+    }    
 }
