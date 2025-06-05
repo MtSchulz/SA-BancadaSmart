@@ -33,19 +33,19 @@
                     </a>
                 </li>
                 <li>
-                    <a href="history.html">
+                    <a href="history">
                         <span class="material-symbols-rounded">history</span>
                         <span>Histórico</span>
                     </a>
                 </li>
                 <li>
-                    <a href="status.html">
+                    <a href="status">
                         <span class="material-symbols-rounded">monitoring</span>
                         <span>Status</span>
                     </a>
                 </li>
                 <li>
-                    <a href="settings.html">
+                    <a href="settings">
                         <span class="material-symbols-rounded">settings</span>
                         <span>Configurações</span>
                     </a>
@@ -67,27 +67,25 @@
 
                     <h3>Estoque (CLP 1 - Matriz de 28 bytes)</h3>
                     <div id="clp1-grid" class="grid"></div>
+
+                    <!-- Seção de cores -->
+                    <div id="color-buttons" class="color-buttons" style="display: none;">
+                        <h4>Selecione uma cor e clique na posição desejada:</h4>
+                        <div class="color-options">
+                            <button class="btn color-btn color-empty" onclick="setSelectedColor(0)">Vazio</button>
+                            <button class="btn color-btn color-black" onclick="setSelectedColor(1)">Preto</button>
+                            <button class="btn color-btn color-red" onclick="setSelectedColor(2)">Vermelho</button>
+                            <button class="btn color-btn color-blue" onclick="setSelectedColor(3)">Azul</button>
+                        </div>
+                    </div>
+                    
                     <div class="button-group">
                         <button class="btn btn-primary" onclick="updateStock()">Atualizar Estoque</button>
-                        <button class="btn btn-primary" onclick="enableEditMode()">Editar Estoque</button>
+                        <button id="editBtn" class="btn btn-primary" onclick="enableEditMode()">Editar Estoque</button>
                         <button id="saveBtn" class="btn btn-primary" style="display:none;" onclick="saveStock()">Salvar
                             Alterações</button>
                         <button id="cancelBtn" class="btn btn-secondary" style="display:none;"
                             onclick="cancelEdit()">Cancelar</button>
-                    </div>
-
-                    <!-- Modal para seleção de cor -->
-                    <div id="colorModal" class="modal">
-                        <div class="modal-content">
-                            <h3>Selecione a Cor</h3>
-                            <div class="color-options">
-                                <button class="btn btn-primary" onclick="selectColor(0)">Vazio</button>
-                                <button class="btn btn-primary" onclick="selectColor(1)">Preto</button>
-                                <button class="btn btn-primary" onclick="selectColor(2)">Vermelho</button>
-                                <button class="btn btn-primary" onclick="selectColor(3)">Azul</button>
-                            </div>
-                            <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
-                        </div>
                     </div>
 
                     <h3>Expedição (CLP 4 - Matriz de 12 bytes)</h3>
@@ -99,225 +97,7 @@
         </div>
     </div>
 
-    <script>
-        let currentEditPosition = null;
-        const stockData = Array(28).fill(0);
-        const originalStockData = [...stockData];
-
-        // Função para carregar dados iniciais do estoque
-        async function loadInitialStockData() {
-            try {
-                const response = await fetch('/estoque/listar');
-                if (!response.ok) throw new Error('Erro ao carregar estoque');
-
-                const data = await response.json();
-                data.forEach((val, i) => {
-                    if (i < stockData.length) {
-                        stockData[i] = val;
-                        originalStockData[i] = val;
-                    }
-                });
-
-                updateStockGrid();
-            } catch (error) {
-                console.error('Erro ao carregar dados iniciais:', error);
-                alert('Erro ao carregar estoque: ' + error.message);
-            }
-        }
-
-        // Event Source para atualizações em tempo real
-        const eventSource = new EventSource('/clp-data-stream');
-
-        eventSource.addEventListener('clp1-data', function (event) {
-            try {
-                const data = JSON.parse(event.data);
-                const colors = data.value || data; // Suporta ambos formatos
-
-                colors.forEach((val, i) => {
-                    if (i < stockData.length) {
-                        stockData[i] = val;
-                        originalStockData[i] = val;
-                    }
-                });
-
-                updateStockGrid();
-            } catch (error) {
-                console.error('Erro ao processar atualização:', error);
-            }
-        });
-
-        eventSource.addEventListener('expedition-data', function (event) {
-            try {
-                const data = JSON.parse(event.data);
-                const expeditionArray = data.value || data;
-                const grid = document.getElementById('expedition-grid');
-                grid.innerHTML = '';
-
-                expeditionArray.forEach((val, i) => {
-                    const cell = document.createElement('div');
-                    cell.classList.add('cell');
-                    cell.innerHTML = `P${i + 1} = [OP ${val}]`;
-
-                    cell.style.backgroundColor = val
-                        ? "rgba(255, 0, 0, 0.3)"
-                        : "rgba(0, 255, 0, 0.3)";
-                    cell.style.border = val
-                        ? "1px solid red"
-                        : "1px solid green";
-
-                    grid.appendChild(cell);
-                });
-            } catch (error) {
-                console.error('Erro ao atualizar expedição:', error);
-            }
-        });
-
-        function updateStockGrid() {
-            const grid = document.getElementById('clp1-grid');
-            if (!grid) return;
-
-            grid.innerHTML = '';
-
-            stockData.forEach((val, i) => {
-                const cell = document.createElement('div');
-                cell.classList.add('cell', `color-${val}`);
-                cell.textContent = i + 1;
-
-                if (document.getElementById('saveBtn').style.display === 'inline-block') {
-                    cell.onclick = () => openColorModal(i);
-                }
-
-                grid.appendChild(cell);
-            });
-        }
-
-        function enableEditMode() {
-            toggleEditButtons(true);
-        }
-
-        function cancelEdit() {
-            stockData.forEach((_, i) => {
-                stockData[i] = originalStockData[i];
-            });
-            updateStockGrid();
-            toggleEditButtons(false);
-        }
-
-        function toggleEditButtons(show) {
-            document.getElementById('saveBtn').style.display = show ? 'inline-block' : 'none';
-            document.getElementById('cancelBtn').style.display = show ? 'inline-block' : 'none';
-            document.querySelector('button[onclick="enableEditMode()"]').style.display = show ? 'none' : 'inline-block';
-        }
-
-        function openColorModal(position) {
-            currentEditPosition = position;
-            document.getElementById('colorModal').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('colorModal').style.display = 'none';
-        }
-
-        function selectColor(color) {
-            if (currentEditPosition !== null) {
-                stockData[currentEditPosition] = color;
-                updateStockGrid();
-                closeModal();
-            }
-        }
-
-      async function saveStock() {
-    const saveBtn = document.getElementById('saveBtn');
-    try {
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Salvando...';
-
-        const response = await fetch('/estoque/editar', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                listBlocks: stockData
-            })
-        });
-
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.details || result.message || 'Erro desconhecido');
-        }
-
-        // Atualiza os dados originais
-        stockData.forEach((val, i) => originalStockData[i] = val);
-        
-        alert(result.message);
-        toggleEditButtons(false);
-        
-    } catch (error) {
-        console.error('Erro ao salvar:', error);
-        alert('Erro: ' + error.message);
-        // Reverte para os dados originais
-        cancelEdit();
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Salvar';
-    }
-}
-        // Funções auxiliares para CLP
-        function update() {
-            fetch('/update', { method: 'POST' })
-                .catch(error => console.error('Erro ao atualizar:', error));
-        }
-
-        function updateStock() {
-            fetch('/update-stock', { method: 'POST' })
-                .catch(error => console.error('Erro ao atualizar estoque:', error));
-        }
-
-        function updateExpedition() {
-            fetch('/update-expedition', { method: 'POST' })
-                .catch(error => console.error('Erro ao atualizar expedição:', error));
-        }
-
-        // Inicialização
-        window.onload = function () {
-            loadInitialStockData();
-            updateExpedition();
-            updateStock();
-            addMenuButton();
-        };
-
-        // Sidebar functions
-        function toggleSidebar() {
-            document.querySelector('.sidebar').classList.toggle('active');
-        }
-
-        document.addEventListener('click', function (event) {
-            const sidebar = document.querySelector('.sidebar');
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnMenuButton = event.target.closest('.menu-button');
-
-            if (window.innerWidth <= 768 && !isClickInsideSidebar && !isClickOnMenuButton) {
-                sidebar.classList.remove('active');
-            }
-        });
-
-        function addMenuButton() {
-            if (window.innerWidth <= 768) {
-                const header = document.querySelector('.header');
-                if (!document.querySelector('.menu-button')) {
-                    const menuButton = document.createElement('button');
-                    menuButton.className = 'menu-button btn btn-secondary';
-                    menuButton.innerHTML = '<span class="material-symbols-rounded">menu</span>';
-                    menuButton.onclick = toggleSidebar;
-                    header.insertBefore(menuButton, header.firstChild);
-                }
-            }
-        }
-
-        window.addEventListener('resize', addMenuButton);
-    </script>
+    <script src="/js/index.js"></script>
 </body>
 
 </html>
