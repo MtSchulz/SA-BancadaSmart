@@ -160,7 +160,7 @@ public class BlockController {
         System.out.println("Total de Blocos: " + pedido.getBlocos().size());
 
         pedido.getBlocos().forEach(block -> {
-            System.out.println("\nBloco - Cor: " + block.getCor());
+            System.out.println("\nBloco - Cor: " + block.getColor());
             System.out.println("Lâminas:");
             block.getLaminas().forEach(lamina -> {
                 System.out.printf("  - Cor: %s, Padrão: %s\n", lamina.getCor(), lamina.getPadrao());
