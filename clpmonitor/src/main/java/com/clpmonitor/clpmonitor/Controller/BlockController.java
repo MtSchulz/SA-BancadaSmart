@@ -127,8 +127,8 @@ public class BlockController {
 
         List<Block> blocks = pedidoRequest.getBlocos().stream().map(blocoData -> {
             Block block = new Block();
-            blocks.setCor(blocoData.getColor());
-            blocks.setPedido(pedido);
+            block.setCor(blocoData.getColor());
+            block.setPedido(pedido);
 
             // Criar as lâminas (adaptado para a estrutura da primeira função)
             List<Lamina> laminas = new ArrayList<>();
@@ -159,10 +159,10 @@ public class BlockController {
         System.out.println("Tipo do Pedido: " + pedido.getTipo());
         System.out.println("Total de Blocos: " + pedido.getBlocos().size());
 
-        pedido.getBlocos().forEach(bloco -> {
-            System.out.println("\nBloco - Cor: " + bloco.getCor());
+        pedido.getBlocos().forEach(block -> {
+            System.out.println("\nBloco - Cor: " + block.getCor());
             System.out.println("Lâminas:");
-            bloco.getLaminas().forEach(lamina -> {
+            block.getLaminas().forEach(lamina -> {
                 System.out.printf("  - Cor: %s, Padrão: %s\n", lamina.getCor(), lamina.getPadrao());
             });
         });
