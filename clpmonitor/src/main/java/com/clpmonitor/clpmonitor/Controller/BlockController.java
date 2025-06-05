@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.clpmonitor.clpmonitor.Model.Block;
+import com.clpmonitor.clpmonitor.Model.Lamina;
+import com.clpmonitor.clpmonitor.Model.Pedido;
 import com.clpmonitor.clpmonitor.Model.Storage;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
 import com.clpmonitor.clpmonitor.Repository.StorageRepository;
@@ -112,6 +114,60 @@ public class BlockController {
             response.put("details", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
+
+    @PostMapping("/api/pedidos")
+    @ResponseBody
+    public String receberPedido(@RequestBody PedidoRequest pedidoRequest) {
+        System.out.println("NOVO PEDIDO RECEBIDO");
+
+        // Criar e salvar o pedido
+        Pedido pedido = new Pedido();
+        pedido.setTipo(pedidoRequest.getTipo()); // Adicionando o tipo como na segunda versão
+
+        List<Block> blocks = pedidoRequest.getBlocos().stream().map(blocoData -> {
+            Block block = new Block();
+            blocks.setCor(blocoData.getColor());
+            blocks.setPedido(pedido);
+
+            // Criar as lâminas (adaptado para a estrutura da primeira função)
+            List<Lamina> laminas = new ArrayList<>();
+
+            // Lâmina 1
+            if (blocoData.getL1Color() != null) {
+                laminas.add(createLamina(blocoData.getL1Color(), blocoData.getL1Pattern(), block));
+            }
+
+            // Lâmina 2
+            if (blocoData.getL2Color() != null) {
+                laminas.add(createLamina(blocoData.getL2Color(), blocoData.getL2Pattern(), block));
+            }
+
+            // Lâmina 3
+            if (blocoData.getL3Color() != null) {
+                laminas.add(createLamina(blocoData.getL3Color(), blocoData.getL3Pattern(), block));
+            }
+
+            block.setLaminas(laminas);
+            return block;
+        }).collect(Collectors.toList());
+
+        pedido.setBlocos(block);
+        pedidoRepository.save(pedido);
+
+        // Log detalhado
+        System.out.println("Tipo do Pedido: " + pedido.getTipo());
+        System.out.println("Total de Blocos: " + pedido.getBlocos().size());
+
+        pedido.getBlocos().forEach(bloco -> {
+            System.out.println("\nBloco - Cor: " + bloco.getCor());
+            System.out.println("Lâminas:");
+            bloco.getLaminas().forEach(lamina -> {
+                System.out.printf("  - Cor: %s, Padrão: %s\n", lamina.getCor(), lamina.getPadrao());
+            });
+        });
+
+        return "Pedido recebido com sucesso!";
     }
 
     private void prepareStockData(Model model, boolean editMode) {

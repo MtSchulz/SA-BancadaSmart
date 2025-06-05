@@ -239,6 +239,7 @@ function carregarCoresDisponiveis() {
 
 // Função para enviar pedido
 function enviarPedido() {
+  const tipo = document.getElementById("tipoPedido").value; // Adicionado
   const blocos = [];
   
   $('section[id^="section-bloco-"]').each(function(index) {
@@ -260,12 +261,15 @@ function enviarPedido() {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ blocos })
+    body: JSON.stringify({
+      tipo: tipo, // Adicionado
+      blocos: blocos
+    })
   })
   .then(response => response.json())
   .then(data => {
     alert('Pedido enviado com sucesso!');
-    carregarCoresDisponiveis(); // Atualiza a lista de cores após envio
+    carregarCoresDisponiveis();
   })
   .catch(error => {
     console.error('Erro:', error);
