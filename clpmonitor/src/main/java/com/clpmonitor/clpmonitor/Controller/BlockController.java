@@ -18,11 +18,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.clpmonitor.clpmonitor.DTO.PedidoRequest;
 import com.clpmonitor.clpmonitor.Model.Block;
 import com.clpmonitor.clpmonitor.Model.Lamina;
 import com.clpmonitor.clpmonitor.Model.Pedido;
 import com.clpmonitor.clpmonitor.Model.Storage;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
+import com.clpmonitor.clpmonitor.Repository.PedidoRepository;
 import com.clpmonitor.clpmonitor.Repository.StorageRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -35,6 +37,9 @@ public class BlockController {
 
     @Autowired
     private StorageRepository storageRepository;
+
+    @Autowired
+    private PedidoRepository pedidoRepository;
 
     @PostConstruct
     public void init() {
@@ -125,9 +130,9 @@ public class BlockController {
         Pedido pedido = new Pedido();
         pedido.setTipo(pedidoRequest.getTipo()); // Adicionando o tipo como na segunda versão
 
-        List<Block> blocks = pedidoRequest.getBlocos().stream().map(blocoData -> {
+        List<Block> blocks = pedidoRequest.getBlocks().stream().map(blocoData -> {
             Block block = new Block();
-            block.setCor(blocoData.getColor());
+            block.setColor(blocoData.getColor());
             block.setPedido(pedido);
 
             // Criar as lâminas (adaptado para a estrutura da primeira função)
@@ -152,7 +157,7 @@ public class BlockController {
             return block;
         }).collect(Collectors.toList());
 
-        pedido.setBlocos(block);
+        pedido.setBlocos(blocks);
         pedidoRepository.save(pedido);
 
         // Log detalhado
@@ -168,6 +173,14 @@ public class BlockController {
         });
 
         return "Pedido recebido com sucesso!";
+    }
+
+    private Lamina createLamina(String cor, String padrao, Block block) {
+        Lamina lamina = new Lamina();
+        lamina.setCor(cor);
+        lamina.setPadrao(padrao);
+        lamina.setBlock(block); // Note que usa 'block' e não 'bloco'
+        return lamina;
     }
 
     private void prepareStockData(Model model, boolean editMode) {

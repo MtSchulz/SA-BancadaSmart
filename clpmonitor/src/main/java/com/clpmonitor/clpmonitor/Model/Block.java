@@ -28,7 +28,7 @@ public class Block {
     @JoinColumn(name = "StorageId")
     private Storage storage;
 
-    @OneToMany(mappedBy = "bloco", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "block", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<Lamina> laminas;
 

@@ -20,7 +20,7 @@ public class Lamina {
     private String padrao;
     
     @ManyToOne
-    @JoinColumn(name = "bloco_id")
+    @JoinColumn(name = "block_id")
     @JsonBackReference
     private Block block;
     
@@ -54,7 +54,7 @@ public class Lamina {
         return block;
     }
 
-    public void setBloco(Block bloco) {
+    public void setBlock(Block bloco) {
         this.block = bloco;
     }
 
