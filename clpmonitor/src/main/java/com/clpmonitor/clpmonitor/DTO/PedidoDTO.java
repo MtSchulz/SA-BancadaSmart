@@ -17,7 +17,7 @@ public class PedidoDTO {
     public List<BlockDTO> getBlocks() {
         return blocks;
     }
-    public void setBlocks(List<BlockDTO> blocoks) {
+    public void setBlocks(List<BlockDTO> blocks) {
         this.blocks = blocks;
     }
 

@@ -54,3 +54,4 @@ public class Pedido {
     
 }
 
+// Verificar o uso da relação product_order_id é necessária tendo as classes pedido e order.

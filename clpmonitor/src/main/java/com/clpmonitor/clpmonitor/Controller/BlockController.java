@@ -57,12 +57,6 @@ public class BlockController {
         }
     }
 
-    @GetMapping("/blocks/estoque")
-    public String listBlocks(Model model) {
-        prepareStockData(model, false);
-        return "index"; // Retornando para index.html
-    }
-
     @GetMapping("/estoque/editar")
     public String editBlocks(Model model) {
         prepareStockData(model, true);
@@ -121,7 +115,7 @@ public class BlockController {
         }
     }
 
-    @PostMapping("/api/pedidos")
+    @PostMapping("/store/orders")
     @ResponseBody
     public String receberPedido(@RequestBody PedidoRequest pedidoRequest) {
         System.out.println("NOVO PEDIDO RECEBIDO");
@@ -133,7 +127,6 @@ public class BlockController {
         List<Block> blocks = pedidoRequest.getBlocks().stream().map(blocoData -> {
             Block block = new Block();
             block.setColor(blocoData.getColor());
-            block.setPedido(pedido);
 
             // Criar as lâminas (adaptado para a estrutura da primeira função)
             List<Lamina> laminas = new ArrayList<>();
@@ -153,7 +146,6 @@ public class BlockController {
                 laminas.add(createLamina(blocoData.getL3Color(), blocoData.getL3Pattern(), block));
             }
 
-            block.setLaminas(laminas);
             return block;
         }).collect(Collectors.toList());
 
@@ -167,9 +159,7 @@ public class BlockController {
         pedido.getBlocos().forEach(block -> {
             System.out.println("\nBloco - Cor: " + block.getColor());
             System.out.println("Lâminas:");
-            block.getLaminas().forEach(lamina -> {
-                System.out.printf("  - Cor: %s, Padrão: %s\n", lamina.getCor(), lamina.getPadrao());
-            });
+
         });
 
         return "Pedido recebido com sucesso!";
@@ -215,23 +205,43 @@ public class BlockController {
         model.addAttribute("editMode", editMode);
     }
 
-    @GetMapping("/estoque/listar")
-    public @org.springframework.web.bind.annotation.ResponseBody List<Integer> listarEstoque() {
-        List<Block> listBlocks = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "Position"));
-        Map<Integer, Integer> estoqueColors = new HashMap<>();
-        List<Integer> estoque = new ArrayList<>();
+      @GetMapping("/estoque/listar")
+    public String listBlocks(Model model) {
+        final List<Block> listBlocks = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "Position"));
+        final Map<Integer, Integer> estoqueColorsByPosition = new HashMap<>();
+        final Map<Integer, String> expedicaoOrdersByPosition = new HashMap<>();
+        final List<Integer> estoque = new ArrayList<>();
+        final List<String> expedicao = new ArrayList<>();
 
         for (Block block : listBlocks) {
-            if (block.getStorage().getId() == 1) { // Estoque
-                estoqueColors.put(block.getPosition(), block.getColor());
+            if (block.getStorage().getId() == 1) {
+                estoqueColorsByPosition.put(block.getPosition(), block.getColor());
+            } else if (block.getStorage().getId() == 2) {
+                int position = block.getPosition();
+                Long newProductionOrder = block.getProductionOrder().getProductionOrder();
+                if (expedicaoOrdersByPosition.containsKey(position)) {
+                    String existingProductionOrders = expedicaoOrdersByPosition.get(position);
+                    String updatedProductionOrders = existingProductionOrders + " " + newProductionOrder;
+                    expedicaoOrdersByPosition.put(position, updatedProductionOrders);
+                } else {
+                    expedicaoOrdersByPosition.put(position, newProductionOrder.toString());
+                }
             }
         }
 
         for (int i = 1; i <= 28; i++) {
-            estoque.add(estoqueColors.getOrDefault(i, 0));
+            estoque.add(estoqueColorsByPosition.getOrDefault(i, 0));
         }
 
-        return estoque;
+        for (int i = 1; i <= 12; i++) {
+            expedicao.add(expedicaoOrdersByPosition.getOrDefault(i, ""));
+        }
+
+        model.addAttribute("estoque", estoque);
+        model.addAttribute("expedicao", expedicao);
+        model.addAttribute("editMode", false);
+
+        return "stock";
     }
 
 }
