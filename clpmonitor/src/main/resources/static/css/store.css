@@ -451,3 +451,102 @@ body {
     padding: 1rem 0;
     border-bottom: 1px solid #eee;
 }
+
+/* Configurações de tema */
+body.dark-theme {
+    --primary-color: #3a86ff;
+    --secondary-color: #2667cc;
+    --accent-color: #4cc9f0;
+    --dark-color: #f8f9fa;
+    --light-color: #1b263b;
+    background-color: #121212;
+}
+
+body.dark-theme .form-section,
+body.dark-theme .orders-section,
+body.dark-theme .dashboard-card,
+body.dark-theme .status-card,
+body.dark-theme .history-item {
+    background-color: #2d3748;
+    color: #f8f9fa;
+}
+
+body.dark-theme .form-group label,
+body.dark-theme .orders-section h2,
+body.dark-theme .dashboard-card h3,
+body.dark-theme .setting-item h3 {
+    color: #f8f9fa;
+}
+
+/* Switch toggle */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Ajustes de densidade */
+body.compact-density {
+    --border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+body.compact-density .btn,
+body.compact-density .form-select {
+    padding: 0.5rem 1rem;
+}
+
+body.comfortable-density {
+    --border-radius: 12px;
+    font-size: 1.1rem;
+}
+
+body.comfortable-density .btn,
+body.comfortable-density .form-select {
+    padding: 1rem 1.5rem;
+}
