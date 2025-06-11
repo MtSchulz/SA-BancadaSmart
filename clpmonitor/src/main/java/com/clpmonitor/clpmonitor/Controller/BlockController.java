@@ -93,8 +93,6 @@ public class BlockController {
                     // Remove se existir
                     if (blocksByPosition.containsKey(position)) {
                         Block blockToDelete = blocksByPosition.get(position);
-                        // Remove lâminas associadas primeiro
-                        laminaRepository.deleteByBlockId(blockToDelete.getId());
                         blockRepository.delete(blockToDelete);
                     }
                 } else {
