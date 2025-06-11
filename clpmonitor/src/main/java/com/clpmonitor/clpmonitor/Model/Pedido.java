@@ -43,12 +43,12 @@ public class Pedido {
         this.tipo = tipo;
     }
 
-    public List<Block> getBlocos() {
+    public List<Block> getBlocks() {
         return blocks;
     }
 
-    public void setBlocos(List<Block> blocos) {
-        this.blocks = blocos;
+    public void setBlocks(List<Block> blocks) {
+        this.blocks = blocks;
     }
 
     

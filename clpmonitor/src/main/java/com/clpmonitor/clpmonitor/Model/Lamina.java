@@ -50,12 +50,12 @@ public class Lamina {
         this.padrao = padrao;
     }
 
-    public Block getBloco() {
+    public Block getBlock() {
         return block;
     }
-
-    public void setBlock(Block bloco) {
-        this.block = bloco;
+    
+    public void setBlock(Block block) {
+        this.block = block;
     }
 
     

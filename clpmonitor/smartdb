@@ -1,92 +1,43 @@
-create schema smartdb;
-use smartdb;
+CREATE SCHEMA smartdb;
+USE smartdb;
 
 CREATE TABLE storage (
-  id int NOT NULL AUTO_INCREMENT,
-  name varchar(255) NOT NULL,
-  capacity int NOT NULL,
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  capacity INT NOT NULL,
   PRIMARY KEY (id)
 );
 
-CREATE TABLE orders (
-  id int NOT NULL AUTO_INCREMENT,
-  production_order varchar(255) NOT NULL UNIQUE,  
+CREATE TABLE pedido (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  tipo VARCHAR(255) NOT NULL,
   PRIMARY KEY (id)
 );
 
 CREATE TABLE block (
-  id int NOT NULL AUTO_INCREMENT,
-  position int NOT NULL,
-  color int NOT NULL,
-  storage_id int NOT NULL,
-  production_order_id int DEFAULT NULL,
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  position INT NOT NULL,
+  color INT NOT NULL,
+  storage_id BIGINT NOT NULL,
+  pedido_id BIGINT DEFAULT NULL,
   PRIMARY KEY (id),
-  KEY FK_Block_Storage (storage_id),
-  KEY FK_Block_Orders (production_order_id),
   CONSTRAINT FK_Block_Storage FOREIGN KEY (storage_id) REFERENCES storage (id),
-  CONSTRAINT FK_Block_Orders FOREIGN KEY (production_order_id) REFERENCES orders (id)
+  CONSTRAINT FK_Block_Pedido FOREIGN KEY (pedido_id) REFERENCES pedido (id)
 );
 
+CREATE TABLE lamina (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  cor VARCHAR(255) NOT NULL,
+  padrao VARCHAR(255) NOT NULL,
+  block_id BIGINT NOT NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT FK_Lamina_Block FOREIGN KEY (block_id) REFERENCES block (id)
+);
+
+-- Inserções iniciais
 INSERT INTO storage (name, capacity) VALUES 
 ('Estoque', 28),   -- Este terá id = 1 (para posições 1-28)
 ('Expedição', 12);  -- Este terá id = 2 (para posições 1-12)
 
--- Ver todos os blocos com informações de storage e orders (se existirem)
-SELECT 
-    b.id,
-    b.position,
-    b.color,
-    s.name AS storage_name,
-    o.production_order
-FROM 
-    block b
-JOIN 
-    storage s ON b.storage_id = s.id
-LEFT JOIN 
-    orders o ON b.production_order_id = o.id
-ORDER BY 
- b.position;
 
--- TESTE MANUAL
-INSERT INTO block (position, color, storage_id) VALUES 
-(1, 2, 1);  -- Posição 1, cor Vermelha (2), no Estoque (storage_id=1)
-INSERT INTO block (position, color, storage_id) VALUES 
-(2, 1, 1);   -- Posição 2, cor Vazia (0), no Estoque (storage_id=1)
-
--- Verificar se apareceu
-SELECT * FROM block WHERE position = 1 AND storage_id = 1;
-
--- Limpar teste
-DELETE FROM block WHERE position = 2 AND storage_id = 1;
-
-
-SELECT 
-    position,
-    color,
-    CASE color
-        WHEN 0 THEN 'Vazio'
-        WHEN 1 THEN 'Preto'
-        WHEN 2 THEN 'Vermelho'
-        WHEN 3 THEN 'Azul'
-        ELSE 'Desconhecido'
-    END AS descricao_cor
-FROM 
-    block
-WHERE 
-    storage_id = 1
-ORDER BY 
-    position;
-    
-    SELECT * FROM block WHERE storage_id = 1 ORDER BY position;
-    
-    
-    
-    -- Limpa os dados mas mantém a estrutura das tabelas
-USE smartdb;
-
-
--- Limpa cada tabela individualmente
-TRUNCATE TABLE block;
-TRUNCATE TABLE orders;
-TRUNCATE TABLE storage;
 

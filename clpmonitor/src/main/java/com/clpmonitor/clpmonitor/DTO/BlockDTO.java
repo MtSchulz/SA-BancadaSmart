@@ -3,16 +3,14 @@ package com.clpmonitor.clpmonitor.DTO;
 import java.util.List;
 
 public class BlockDTO {
-    private String cor;
+    private int cor;
     private List<LaminaDTO> laminas;
 
-    // Getters e Setters
-
-    public String getCor() {
+    public int getCor() {
         return cor;
     }
 
-    public void setCor(String cor) {
+    public void setCor(int cor) {
         this.cor = cor;
     }
 

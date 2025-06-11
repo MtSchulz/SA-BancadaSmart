@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,27 +20,21 @@ public class Block {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "position")
     private int position;
 
     private int color;
 
     @ManyToOne
-    @JoinColumn(name = "StorageId")
-    private Storage storage;
+    @JoinColumn(name = "storage_id")
+    private Storage storage; // Deve ser do mesmo tipo que Storage.id
 
     @OneToMany(mappedBy = "block", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<Lamina> laminas;
-
     @ManyToOne
     @JoinColumn(name = "pedido_id")
     @JsonBackReference
     private Pedido pedido;
-
-    @ManyToOne
-    @JoinColumn(name = "production_order_id")
-    private Orders productionOrder;
 
     // getters e setters
     public Long getId() {
@@ -74,14 +67,6 @@ public class Block {
 
     public void setStorage(Storage storage) {
         this.storage = storage;
-    }
-
-    public Orders getProductionOrder() {
-        return productionOrder;
-    }
-
-    public void setProductionOrder(Orders productionOrder) {
-        this.productionOrder = productionOrder;
     }
 
     public List<Lamina> getLaminas() {

@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.clpmonitor.clpmonitor.DTO.PedidoRequest;
+import com.clpmonitor.clpmonitor.DTO.BlockDTO;
+import com.clpmonitor.clpmonitor.DTO.LaminaDTO;
+import com.clpmonitor.clpmonitor.DTO.PedidoDTO;
 import com.clpmonitor.clpmonitor.Model.Block;
 import com.clpmonitor.clpmonitor.Model.Lamina;
 import com.clpmonitor.clpmonitor.Model.Pedido;
 import com.clpmonitor.clpmonitor.Model.Storage;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
+import com.clpmonitor.clpmonitor.Repository.LaminaRepository;
 import com.clpmonitor.clpmonitor.Repository.PedidoRepository;
 import com.clpmonitor.clpmonitor.Repository.StorageRepository;
 
@@ -41,9 +44,11 @@ public class BlockController {
     @Autowired
     private PedidoRepository pedidoRepository;
 
+    @Autowired
+    private LaminaRepository laminaRepository;
+
     @PostConstruct
     public void init() {
-        // Verifica se os storages padrão existem
         if (storageRepository.count() == 0) {
             Storage estoque = new Storage();
             estoque.setName("Estoque");
@@ -60,24 +65,22 @@ public class BlockController {
     @GetMapping("/estoque/editar")
     public String editBlocks(Model model) {
         prepareStockData(model, true);
-        return "index"; // Retornando para index.html
+        return "index";
     }
 
     @PostMapping("/estoque/editar")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> saveBlock(@RequestBody Map<String, List<Integer>> request) {
         Map<String, Object> response = new HashMap<>();
-
         try {
             List<Integer> listBlocks = request.get("listBlocks");
             if (listBlocks == null) {
                 throw new IllegalArgumentException("Lista de blocos não fornecida");
             }
 
-            Storage storage = storageRepository.findById(1L) // ID fixo para estoque
+            Storage storage = storageRepository.findById(1L)
                     .orElseThrow(() -> new RuntimeException("Storage de estoque não encontrado"));
 
-            // Busca otimizada
             List<Block> existingBlocks = blockRepository.findByStorage_Id(storage.getId());
             Map<Integer, Block> blocksByPosition = existingBlocks.stream()
                     .collect(Collectors.toMap(Block::getPosition, Function.identity()));
@@ -89,7 +92,10 @@ public class BlockController {
                 if (color == 0) {
                     // Remove se existir
                     if (blocksByPosition.containsKey(position)) {
-                        blockRepository.delete(blocksByPosition.get(position));
+                        Block blockToDelete = blocksByPosition.get(position);
+                        // Remove lâminas associadas primeiro
+                        laminaRepository.deleteByBlockId(blockToDelete.getId());
+                        blockRepository.delete(blockToDelete);
                     }
                 } else {
                     Block block = blocksByPosition.computeIfAbsent(position, pos -> {
@@ -117,131 +123,124 @@ public class BlockController {
 
     @PostMapping("/store/orders")
     @ResponseBody
-    public String receberPedido(@RequestBody PedidoRequest pedidoRequest) {
-        System.out.println("NOVO PEDIDO RECEBIDO");
-
-        // Criar e salvar o pedido
-        Pedido pedido = new Pedido();
-        pedido.setTipo(pedidoRequest.getTipo()); // Adicionando o tipo como na segunda versão
-
-        List<Block> blocks = pedidoRequest.getBlocks().stream().map(blocoData -> {
-            Block block = new Block();
-            block.setColor(blocoData.getColor());
-
-            // Criar as lâminas (adaptado para a estrutura da primeira função)
-            List<Lamina> laminas = new ArrayList<>();
-
-            // Lâmina 1
-            if (blocoData.getL1Color() != null) {
-                laminas.add(createLamina(blocoData.getL1Color(), blocoData.getL1Pattern(), block));
+    public ResponseEntity<Map<String, Object>> receberPedidos(@RequestBody List<PedidoDTO> pedidosDto) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Validação básica
+            if (pedidosDto == null || pedidosDto.isEmpty()) {
+                throw new IllegalArgumentException("Lista de pedidos não fornecida ou vazia");
             }
-
-            // Lâmina 2
-            if (blocoData.getL2Color() != null) {
-                laminas.add(createLamina(blocoData.getL2Color(), blocoData.getL2Pattern(), block));
+    
+            System.out.println("PEDIDOS RECEBIDOS: " + pedidosDto.size());
+            List<Long> pedidosIds = new ArrayList<>();
+    
+            for (PedidoDTO pedidoDTO : pedidosDto) {
+                // Validação flexível do pedido
+                if (pedidoDTO.getTipo() == null || pedidoDTO.getTipo().trim().isEmpty()) {
+                    pedidoDTO.setTipo("Padrão"); // Valor default
+                }
+    
+                // Inicializa blocks se for null
+                if (pedidoDTO.getBlocks() == null) {
+                    pedidoDTO.setBlocks(new ArrayList<>());
+                    System.out.println("Aviso: Pedido com blocks=null - inicializado como lista vazia");
+                }
+    
+                Pedido pedido = new Pedido();
+                pedido.setTipo(pedidoDTO.getTipo());
+                List<Block> blocos = new ArrayList<>();
+    
+                for (BlockDTO blockDTO : pedidoDTO.getBlocks()) {
+                    Block block = new Block();
+                    // Usa diretamente o int do DTO
+                    block.setColor(blockDTO.getCor());
+                    block.setPedido(pedido);
+    
+                    // Processa lâminas
+                    List<Lamina> laminas = new ArrayList<>();
+                    if (blockDTO.getLaminas() != null) {
+                        for (LaminaDTO laminaDTO : blockDTO.getLaminas()) {
+                            if (laminaDTO.getCor() != null && !laminaDTO.getCor().trim().isEmpty()) {
+                                Lamina lamina = new Lamina();
+                                lamina.setCor(laminaDTO.getCor());
+                                lamina.setPadrao(laminaDTO.getPadrao() != null ? laminaDTO.getPadrao() : "");
+                                lamina.setBlock(block);
+                                laminas.add(lamina);
+                            }
+                        }
+                    }
+                    block.setLaminas(laminas);
+                    blocos.add(block);
+                }
+    
+                pedido.setBlocks(blocos);
+                
+                // Salva apenas se houver blocos
+                if (!blocos.isEmpty()) {
+                    pedidoRepository.save(pedido);
+                    pedidosIds.add(pedido.getId());
+                    System.out.println("Pedido salvo - ID: " + pedido.getId());
+                }
             }
-
-            // Lâmina 3
-            if (blocoData.getL3Color() != null) {
-                laminas.add(createLamina(blocoData.getL3Color(), blocoData.getL3Pattern(), block));
-            }
-
-            return block;
-        }).collect(Collectors.toList());
-
-        pedido.setBlocos(blocks);
-        pedidoRepository.save(pedido);
-
-        // Log detalhado
-        System.out.println("Tipo do Pedido: " + pedido.getTipo());
-        System.out.println("Total de Blocos: " + pedido.getBlocos().size());
-
-        pedido.getBlocos().forEach(block -> {
-            System.out.println("\nBloco - Cor: " + block.getColor());
-            System.out.println("Lâminas:");
-
-        });
-
-        return "Pedido recebido com sucesso!";
+    
+            response.put("status", "success");
+            response.put("message", "Pedidos processados com sucesso");
+            response.put("pedidosIds", pedidosIds);
+            return ResponseEntity.ok(response);
+    
+        } catch (Exception e) {
+            System.err.println("Erro ao processar pedidos: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", "Erro ao processar pedidos");
+            response.put("details", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
-
-    private Lamina createLamina(String cor, String padrao, Block block) {
-        Lamina lamina = new Lamina();
-        lamina.setCor(cor);
-        lamina.setPadrao(padrao);
-        lamina.setBlock(block); // Note que usa 'block' e não 'bloco'
-        return lamina;
-    }
+    
 
     private void prepareStockData(Model model, boolean editMode) {
-        List<Block> listBlocks = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "Position"));
-        Map<Integer, Integer> estoqueColors = new HashMap<>();
-        Map<Integer, String> expedicaoOrders = new HashMap<>();
-        List<Integer> estoque = new ArrayList<>();
-        List<String> expedicao = new ArrayList<>();
-
-        // Processar dados
+        List<Block> listBlocks = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "position"));
+        List<Integer> estoque = new ArrayList<>(28);
+        List<String> expedicao = new ArrayList<>(12);
+    
+        // Inicializa com valores padrão
+        for (int i = 0; i < 28; i++) estoque.add(0);
+        for (int i = 0; i < 12; i++) expedicao.add("");
+    
+        // Preenche com dados reais
         for (Block block : listBlocks) {
-            if (block.getStorage().getId() == 1) { // Estoque
-                estoqueColors.put(block.getPosition(), block.getColor());
-            } else if (block.getStorage().getId() == 2) { // Expedição
-                expedicaoOrders.merge(block.getPosition(),
-                        block.getProductionOrder().getProductionOrder(),
-                        (oldVal, newVal) -> oldVal + ", " + newVal);
+            if (block.getStorage() == null) continue;
+            
+            if (block.getStorage().getId() == 1 && block.getPosition() >= 1 && block.getPosition() <= 28) {
+                estoque.set(block.getPosition() - 1, block.getColor());
+            } else if (block.getStorage().getId() == 2 && block.getPosition() >= 1 && block.getPosition() <= 12) {
+                String tipo = block.getPedido() != null ? block.getPedido().getTipo() : "Sem Pedido";
+                expedicao.set(block.getPosition() - 1, tipo);
             }
         }
-
-        // Preencher listas
-        for (int i = 1; i <= 28; i++) {
-            estoque.add(estoqueColors.getOrDefault(i, 0));
-        }
-        for (int i = 1; i <= 12; i++) {
-            expedicao.add(expedicaoOrders.getOrDefault(i, ""));
-        }
-
-        // Adicionar atributos ao modelo
+    
         model.addAttribute("estoque", estoque);
         model.addAttribute("expedicao", expedicao);
         model.addAttribute("editMode", editMode);
     }
 
-      @GetMapping("/estoque/listar")
-    public String listBlocks(Model model) {
-        final List<Block> listBlocks = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "Position"));
-        final Map<Integer, Integer> estoqueColorsByPosition = new HashMap<>();
-        final Map<Integer, String> expedicaoOrdersByPosition = new HashMap<>();
-        final List<Integer> estoque = new ArrayList<>();
-        final List<String> expedicao = new ArrayList<>();
+    @GetMapping("/estoque/listar")
+    @ResponseBody
+    public List<Integer> listarEstoqueJson() {
+        List<Block> listBlocks = blockRepository.findByStorage_Id(1L);
+        List<Integer> estoque = new ArrayList<>(28);
+
+        for (int i = 0; i < 28; i++) {
+            estoque.add(0);
+        }
 
         for (Block block : listBlocks) {
-            if (block.getStorage().getId() == 1) {
-                estoqueColorsByPosition.put(block.getPosition(), block.getColor());
-            } else if (block.getStorage().getId() == 2) {
-                int position = block.getPosition();
-                Long newProductionOrder = block.getProductionOrder().getProductionOrder();
-                if (expedicaoOrdersByPosition.containsKey(position)) {
-                    String existingProductionOrders = expedicaoOrdersByPosition.get(position);
-                    String updatedProductionOrders = existingProductionOrders + " " + newProductionOrder;
-                    expedicaoOrdersByPosition.put(position, updatedProductionOrders);
-                } else {
-                    expedicaoOrdersByPosition.put(position, newProductionOrder.toString());
-                }
+            if (block.getPosition() >= 1 && block.getPosition() <= 28) {
+                estoque.set(block.getPosition() - 1, block.getColor());
             }
         }
 
-        for (int i = 1; i <= 28; i++) {
-            estoque.add(estoqueColorsByPosition.getOrDefault(i, 0));
-        }
-
-        for (int i = 1; i <= 12; i++) {
-            expedicao.add(expedicaoOrdersByPosition.getOrDefault(i, ""));
-        }
-
-        model.addAttribute("estoque", estoque);
-        model.addAttribute("expedicao", expedicao);
-        model.addAttribute("editMode", false);
-
-        return "stock";
+        return estoque;
     }
-
 }

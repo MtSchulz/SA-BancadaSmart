@@ -9,7 +9,7 @@ import jakarta.persistence.Id;
 public class Storage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id;  // Tipo deve corresponder ao storage_id em Block
 
     private String name;
 
