@@ -44,9 +44,6 @@ public class BlockController {
     @Autowired
     private PedidoRepository pedidoRepository;
 
-    @Autowired
-    private LaminaRepository laminaRepository;
-
     @PostConstruct
     public void init() {
         if (storageRepository.count() == 0) {
