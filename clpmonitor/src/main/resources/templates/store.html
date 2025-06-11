@@ -77,15 +77,30 @@
 
                 <div class="divider"></div>
 
+                <!--
                 <div class="orders-section">
                     <button class="btn btn-secondary" onclick="listarPedidos()">Listar Pedidos</button>
                     <h2>Pedidos Recebidos</h2>
                     <div id="listaPedidos" class="orders-list"></div>
                 </div>
+                -->
+                
+                <!-- Vizualizar bloco -->
+                <div class="view-section">
+                    <h2>Visualização do Bloco</h2>
+                    <button class="btn btn-secondary" onclick="atualizarVisualizacao()">
+                        <span class="material-symbols-rounded">refresh</span>
+                        Atualizar Visualização
+                    </button>
+                    <div id="visualizacaoBloco" class="bloco-view">
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
 
-    <script src="/js/pedido.js"></script>
+    <script src="/js/store.js"></script>
+    
 </body>
 </html>

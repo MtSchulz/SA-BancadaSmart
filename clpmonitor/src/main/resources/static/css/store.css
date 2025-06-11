@@ -550,3 +550,42 @@ body.comfortable-density .btn,
 body.comfortable-density .form-select {
     padding: 1rem 1.5rem;
 }
+
+/* Seção de Visualização */
+.view-section {
+    background-color: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-top: 2rem;
+}
+
+.view-section h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+    color: var(--dark-color);
+}
+
+.bloco-view {
+    background-color: rgba(255, 255, 255, .1);
+    width: 100%;
+    min-height: 300px;
+    border-radius: 10px;
+    position: relative;
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.bloco-view img {
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: contain;
+}
+
+.btn .material-symbols-rounded {
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
