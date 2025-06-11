@@ -1,6 +1,7 @@
 let currentEditPosition = null;
 const stockData = Array(28).fill(0);
 const originalStockData = [...stockData];
+let isEditMode = false;
 let selectedColor = 0; // 0 = Vazio, 1 = Preto, 2 = Vermelho, 3 = Azul
 
 // Função para carregar dados iniciais do estoque
@@ -17,33 +18,73 @@ async function loadInitialStockData() {
             }
         });
 
+        lastUpdateFrom = 'db';
         updateStockGrid();
+        
+        // Verifica se o CLP responde em 3 segundos
+        setTimeout(() => {
+            if (!clpConnected) {
+                console.log('Usando dados do banco (CLP não conectado)');
+            }
+        }, 3000);
     } catch (error) {
         console.error('Erro ao carregar dados iniciais:', error);
-        alert('Erro ao carregar estoque: ' + error.message);
     }
 }
 
 // Event Source para atualizações em tempo real
 const eventSource = new EventSource('/clp-data-stream');
 
-eventSource.addEventListener('clp1-data', function (event) {
+let lastClpUpdateTime = 0;
+
+eventSource.addEventListener('clp1-data', function(event) {
+    clpConnected = true;
     try {
         const data = JSON.parse(event.data);
-        const colors = data.value || data; // Suporta ambos formatos
-
+        const colors = data.value || data;
+        
+        // Só atualiza se for diferente do banco
         colors.forEach((val, i) => {
-            if (i < stockData.length) {
+            if (i < stockData.length && val !== originalStockData[i]) {
                 stockData[i] = val;
-                originalStockData[i] = val;
             }
         });
-
+        
+        lastUpdateFrom = 'clp';
         updateStockGrid();
     } catch (error) {
         console.error('Erro ao processar atualização:', error);
     }
 });
+
+eventSource.onerror = function() {
+    clpConnected = false;
+    if (lastUpdateFrom === 'clp') {
+        syncWithDatabase(); // Volta para os dados do banco
+    }
+};
+
+async function syncWithDatabase() {
+    try {
+        console.log('Sincronizando com o banco de dados...');
+        const response = await fetch('/estoque/listar');
+        if (!response.ok) throw new Error('Erro ao sincronizar');
+        
+        const data = await response.json();
+        data.forEach((val, i) => {
+            if (i < stockData.length) {
+                stockData[i] = val;
+                originalStockData[i] = val;
+            }
+        });
+        
+        lastUpdateFrom = 'db';
+        updateStockGrid();
+    } catch (error) {
+        console.error('Erro na sincronização:', error);
+    }
+}
+
 
 eventSource.addEventListener('expedition-data', function (event) {
     try {
@@ -71,6 +112,7 @@ eventSource.addEventListener('expedition-data', function (event) {
     }
 });
 
+
 function updateStockGrid() {
     const grid = document.getElementById('clp1-grid');
     if (!grid) return;
@@ -82,14 +124,17 @@ function updateStockGrid() {
         cell.classList.add('cell', `color-${val}`);
         cell.textContent = i + 1;
 
-        if (document.getElementById('saveBtn').style.display === 'inline-block') {
-            cell.onclick = () => {
+        cell.onclick = () => {
+            if (!isEditMode) {
+                enableEditMode();
+            }
+            if (selectedColor !== null) {
                 stockData[i] = selectedColor;
                 updateStockGrid();
-            };
-            cell.style.cursor = 'pointer';
-        }
+            }
+        };
 
+        cell.style.cursor = 'pointer';
         grid.appendChild(cell);
     });
 }
@@ -104,21 +149,26 @@ function setSelectedColor(color) {
 }
 
 function enableEditMode() {
+    isEditMode = true;
     toggleEditButtons(true);
     document.getElementById('color-buttons').style.display = 'block';
-    // Seleciona a primeira cor por padrão
-    setSelectedColor(0);
+    // Não seleciona cor automaticamente
 }
 
 function cancelEdit() {
+    isEditMode = false;
     stockData.forEach((_, i) => {
         stockData[i] = originalStockData[i];
     });
     updateStockGrid();
     toggleEditButtons(false);
     document.getElementById('color-buttons').style.display = 'none';
+    selectedColor = null;
+    // Remove destaque dos botões de cor
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.style.border = '2px solid transparent';
+    });
 }
-
 function toggleEditButtons(show) {
     document.getElementById('saveBtn').style.display = show ? 'inline-block' : 'none';
     document.getElementById('cancelBtn').style.display = show ? 'inline-block' : 'none';
@@ -150,15 +200,21 @@ async function saveStock() {
         // Atualiza os dados originais
         stockData.forEach((val, i) => originalStockData[i] = val);
 
+        isEditMode = false;
+        selectedColor = null;
+
         alert(result.message);
         toggleEditButtons(false);
         document.getElementById('color-buttons').style.display = 'none';
 
+        // Remove destaque dos botões de cor
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.style.border = '2px solid transparent';
+        });
+
     } catch (error) {
         console.error('Erro ao salvar:', error);
         alert('Erro: ' + error.message);
-        // Reverte para os dados originais
-        cancelEdit();
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Salvar';
@@ -182,11 +238,19 @@ function updateExpedition() {
 }
 
 // Inicialização
-window.onload = function () {
+window.onload = function() {
+    // 1. Primeiro carrega do banco
     loadInitialStockData();
+    
+    // 2. Depois verifica o CLP
+    setTimeout(() => {
+        if (!clpConnected) {
+            console.log('CLP não conectado - mantendo dados do banco');
+        }
+    }, 3000);
+    
+    // 3. Atualiza a expedição
     updateExpedition();
-    updateStock();
-    addMenuButton();
 };
 
 // Sidebar functions

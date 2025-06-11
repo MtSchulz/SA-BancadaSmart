@@ -120,38 +120,38 @@ public class BlockController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> receberPedidos(@RequestBody List<PedidoDTO> pedidosDto) {
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
             // Validação básica
             if (pedidosDto == null || pedidosDto.isEmpty()) {
                 throw new IllegalArgumentException("Lista de pedidos não fornecida ou vazia");
             }
-    
+
             System.out.println("PEDIDOS RECEBIDOS: " + pedidosDto.size());
             List<Long> pedidosIds = new ArrayList<>();
-    
+
             for (PedidoDTO pedidoDTO : pedidosDto) {
                 // Validação flexível do pedido
                 if (pedidoDTO.getTipo() == null || pedidoDTO.getTipo().trim().isEmpty()) {
                     pedidoDTO.setTipo("Padrão"); // Valor default
                 }
-    
+
                 // Inicializa blocks se for null
                 if (pedidoDTO.getBlocks() == null) {
                     pedidoDTO.setBlocks(new ArrayList<>());
                     System.out.println("Aviso: Pedido com blocks=null - inicializado como lista vazia");
                 }
-    
+
                 Pedido pedido = new Pedido();
                 pedido.setTipo(pedidoDTO.getTipo());
                 List<Block> blocos = new ArrayList<>();
-    
+
                 for (BlockDTO blockDTO : pedidoDTO.getBlocks()) {
                     Block block = new Block();
                     // Usa diretamente o int do DTO
                     block.setColor(blockDTO.getCor());
                     block.setPedido(pedido);
-    
+
                     // Processa lâminas
                     List<Lamina> laminas = new ArrayList<>();
                     if (blockDTO.getLaminas() != null) {
@@ -168,9 +168,9 @@ public class BlockController {
                     block.setLaminas(laminas);
                     blocos.add(block);
                 }
-    
+
                 pedido.setBlocks(blocos);
-                
+
                 // Salva apenas se houver blocos
                 if (!blocos.isEmpty()) {
                     pedidoRepository.save(pedido);
@@ -178,12 +178,12 @@ public class BlockController {
                     System.out.println("Pedido salvo - ID: " + pedido.getId());
                 }
             }
-    
+
             response.put("status", "success");
             response.put("message", "Pedidos processados com sucesso");
             response.put("pedidosIds", pedidosIds);
             return ResponseEntity.ok(response);
-    
+
         } catch (Exception e) {
             System.err.println("Erro ao processar pedidos: " + e.getMessage());
             response.put("status", "error");
@@ -192,21 +192,23 @@ public class BlockController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-    
 
     private void prepareStockData(Model model, boolean editMode) {
         List<Block> listBlocks = blockRepository.findAll(Sort.by(Sort.Direction.ASC, "position"));
         List<Integer> estoque = new ArrayList<>(28);
         List<String> expedicao = new ArrayList<>(12);
-    
+
         // Inicializa com valores padrão
-        for (int i = 0; i < 28; i++) estoque.add(0);
-        for (int i = 0; i < 12; i++) expedicao.add("");
-    
+        for (int i = 0; i < 28; i++)
+            estoque.add(0);
+        for (int i = 0; i < 12; i++)
+            expedicao.add("");
+
         // Preenche com dados reais
         for (Block block : listBlocks) {
-            if (block.getStorage() == null) continue;
-            
+            if (block.getStorage() == null)
+                continue;
+
             if (block.getStorage().getId() == 1 && block.getPosition() >= 1 && block.getPosition() <= 28) {
                 estoque.set(block.getPosition() - 1, block.getColor());
             } else if (block.getStorage().getId() == 2 && block.getPosition() >= 1 && block.getPosition() <= 12) {
@@ -214,7 +216,7 @@ public class BlockController {
                 expedicao.set(block.getPosition() - 1, tipo);
             }
         }
-    
+
         model.addAttribute("estoque", estoque);
         model.addAttribute("expedicao", expedicao);
         model.addAttribute("editMode", editMode);
@@ -237,5 +239,64 @@ public class BlockController {
         }
 
         return estoque;
+    }
+
+    @GetMapping("/expedicao/listar")
+    @ResponseBody
+    public List<Integer> listarExpedicaoJson() {
+        List<Block> listBlocks = blockRepository.findByStorage_Id(4L); // CLP 4 - Expedição
+        List<Integer> expedicao = new ArrayList<>(12); // Matriz de 12 bytes
+
+        // Inicializa com 0 (vazio)
+        for (int i = 0; i < 12; i++) {
+            expedicao.add(0);
+        }
+
+        // Preenche com dados do banco
+        for (Block block : listBlocks) {
+            if (block.getPosition() >= 1 && block.getPosition() <= 12) {
+                expedicao.set(block.getPosition() - 1, block.getColor());
+            }
+        }
+
+        return expedicao;
+    }
+
+    @PostMapping("/estoque/sincronizar")
+    @ResponseBody
+    public ResponseEntity<String> sincronizarEstoque(@RequestBody List<Integer> dadosAtualizados) {
+        try {
+            // 1. Obter todos os blocos do storage 1 (CLP1)
+            List<Block> blocosExistentes = blockRepository.findByStorage_Id(1L);
+
+            // 2. Criar um mapa para acesso rápido por posição
+            Map<Integer, Block> mapaBlocos = new HashMap<>();
+            blocosExistentes.forEach(b -> mapaBlocos.put(b.getPosition(), b));
+
+            // 3. Atualizar ou criar novos blocos
+            for (int i = 0; i < dadosAtualizados.size(); i++) {
+                int posicao = i + 1;
+                int cor = dadosAtualizados.get(i);
+
+                Block bloco = mapaBlocos.get(posicao);
+                if (bloco == null) {
+                    // Criar novo bloco
+                    Storage storage = storageRepository.findById(1L).orElseThrow();
+                    bloco = new Block();
+                    bloco.setPosition(posicao);
+                    bloco.setStorage(storage);
+                    bloco.setColor(cor);
+                } else {
+                    // Atualizar bloco existente
+                    bloco.setColor(cor);
+                }
+
+                blockRepository.save(bloco);
+            }
+
+            return ResponseEntity.ok("Estoque sincronizado com sucesso");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erro ao sincronizar: " + e.getMessage());
+        }
     }
 }
