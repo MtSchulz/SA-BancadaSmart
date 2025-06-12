@@ -124,7 +124,7 @@ public class ClpController {
 
     @PostMapping("/pedidoTeste")
     public String peditoTeste() {
-        pedidoTesteService.enviarPedidoTeste();
+        pedidoTesteService.enviarPedidoTeste(null);
         return "redirect:/store";
     }
 
