@@ -474,10 +474,10 @@ function atualizarVisualizacao() {
   // Cria container principal
   const container = document.createElement('div');
   container.className = 'visualizacao-container';
-
+  
   // Cria container para os blocos empilhados
   const blocosContainer = document.createElement('div');
-  blocosContainer.className = 'visualizacao-blocos';
+  blocosContainer.className = 'visualizacao-blocos stacked';
   container.appendChild(blocosContainer);
 
   // Obtém todos os blocos configurados
@@ -496,37 +496,38 @@ function atualizarVisualizacao() {
 
       // Cria container do bloco
       const blocoDiv = document.createElement('div');
-      blocoDiv.className = 'visualizacao-bloco';
+      blocoDiv.className = 'visualizacao-bloco stacked';
       
-      // Título do bloco
-      const titulo = document.createElement('h3');
-      titulo.textContent = `Bloco ${index + 1}`;
-      blocoDiv.appendChild(titulo);
-
       // Container da visualização (pedido-view)
       const viewDiv = document.createElement('div');
       viewDiv.className = 'visualizacao-pedido-view' + (isSpun ? ' spin' : '');
       blocoDiv.appendChild(viewDiv);
 
-      // Adiciona imagens na ordem correta
-      const addImage = (elementId) => {
+      // Função para adicionar imagens com z-index correto
+      const addImage = (elementId, zIndex) => {
           const originalImg = document.getElementById(elementId);
           if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
               const img = document.createElement('img');
               img.className = 'imagem';
               img.src = originalImg.src;
               img.alt = originalImg.alt;
+              img.style.zIndex = zIndex;
               viewDiv.appendChild(img);
           }
       };
 
-      // Bloco base
-      addImage(`bloco-${blocoId}`);
+      // Adiciona as imagens na ordem correta com z-index específico
+      // Bloco (fundo)
+      addImage(`bloco-${blocoId}`, 1);
       
-      // Lâminas e padrões
+      // Lâminas
+      addImage(`lamina${blocoId}-3`, 10);
+      addImage(`lamina${blocoId}-1`, 20);
+      addImage(`lamina${blocoId}-2`, 30);
+      
+      // Padrões
       for (let i = 1; i <= 3; i++) {
-          addImage(`lamina${blocoId}-${i}`);
-          addImage(`padrao${blocoId}-${i}`);
+          addImage(`padrao${blocoId}-${i}`, 70);
       }
 
       blocosContainer.appendChild(blocoDiv);
@@ -536,7 +537,6 @@ function atualizarVisualizacao() {
   visualizacao.innerHTML = '';
   visualizacao.appendChild(container);
 }
-
 
 /**
  * Carrega as cores disponíveis do backend
