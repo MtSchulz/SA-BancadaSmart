@@ -466,66 +466,75 @@ document.addEventListener('click', function (event) {
 // Funções de manipulação dinâmica de blocos (jQuery)
 // =============================================
 
-/**
- * Atualiza a visualização do bloco
- */
+// Visualização completa do bloco
 function atualizarVisualizacao() {
   const visualizacao = document.getElementById('visualizacaoBloco');
   visualizacao.innerHTML = '<p class="loading">Carregando visualização...</p>';
 
-  // Encontra o primeiro bloco na página (você pode adaptar para pegar um específico)
-  const bloco = document.querySelector('.bloco');
-
-  if (!bloco) {
-    visualizacao.innerHTML = '<p>Nenhum bloco configurado.</p>';
-    return;
-  }
-
-  const id = bloco.id.split('-')[2]; // Extrai o ID do bloco
-  const pedidoView = document.getElementById(`pedido-view${id}`);
-  const isSpun = pedidoView.dataset.isSpun === "true";
+  // Cria container principal
   const container = document.createElement('div');
-  container.className = 'visualizacao-completa';
+  container.className = 'visualizacao-container';
 
-  // Carrega o bloco
-  const blocoImgSrc = document.getElementById(`bloco-${id}`).src;
-  if (blocoImgSrc && blocoImgSrc !== '#') {
-    const blocoImg = document.createElement('img');
-    blocoImg.src = blocoImgSrc;
-    blocoImg.alt = 'Bloco';
-    blocoImg.style.maxHeight = '150px';
-    blocoImg.classList.add("imagem")
-    container.appendChild(blocoImg);
+  // Cria container para os blocos empilhados
+  const blocosContainer = document.createElement('div');
+  blocosContainer.className = 'visualizacao-blocos';
+  container.appendChild(blocosContainer);
+
+  // Obtém todos os blocos configurados
+  const blocos = document.querySelectorAll('.bloco');
+  
+  if (blocos.length === 0) {
+      visualizacao.innerHTML = '<p>Configure pelo menos um bloco</p>';
+      return;
   }
 
-  // Lâminas e padrões
-  for (let i = 1; i <= 3; i++) {
-    const laminaNum = isSpun ? (i === 1 ? 3 : i === 3 ? 1 : i) : i;
-    const laminaSrc = document.getElementById(`lamina${id}-${laminaNum}`).src;
-    console.log("Laminas SRC: " + laminaSrc)
-    if (laminaSrc && !String(laminaSrc).includes("#")) {
-      const laminaImg = document.createElement('img');
-      laminaImg.src = laminaSrc;
-      laminaImg.alt = `Lâmina ${i}`;
-      laminaImg.style.maxHeight = '80px';
-      laminaImg.classList.add("imagem")
-      container.appendChild(laminaImg);
-    }
+  // Para cada bloco, cria uma visualização
+  blocos.forEach((bloco, index) => {
+      const blocoId = bloco.id.split('-')[2] || (index + 1);
+      const pedidoView = document.getElementById(`pedido-view${blocoId}`);
+      const isSpun = pedidoView ? pedidoView.classList.contains('spin') : false;
 
-    const padraoSrc = document.getElementById(`padrao${id}-${laminaNum}`).src;
-    if (padraoSrc && !String(padraoSrc).includes("#")) {
-      const padraoImg = document.createElement('img');
-      padraoImg.src = padraoSrc;
-      padraoImg.alt = `Padrão ${i}`;
-      padraoImg.style.maxHeight = '80px';
-      padraoImg.classList.add("imagem")
-      container.appendChild(padraoImg);
-    }
-  }
+      // Cria container do bloco
+      const blocoDiv = document.createElement('div');
+      blocoDiv.className = 'visualizacao-bloco';
+      
+      // Título do bloco
+      const titulo = document.createElement('h3');
+      titulo.textContent = `Bloco ${index + 1}`;
+      blocoDiv.appendChild(titulo);
 
+      // Container da visualização (pedido-view)
+      const viewDiv = document.createElement('div');
+      viewDiv.className = 'visualizacao-pedido-view' + (isSpun ? ' spin' : '');
+      blocoDiv.appendChild(viewDiv);
+
+      // Adiciona imagens na ordem correta
+      const addImage = (elementId) => {
+          const originalImg = document.getElementById(elementId);
+          if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
+              const img = document.createElement('img');
+              img.className = 'imagem';
+              img.src = originalImg.src;
+              img.alt = originalImg.alt;
+              viewDiv.appendChild(img);
+          }
+      };
+
+      // Bloco base
+      addImage(`bloco-${blocoId}`);
+      
+      // Lâminas e padrões
+      for (let i = 1; i <= 3; i++) {
+          addImage(`lamina${blocoId}-${i}`);
+          addImage(`padrao${blocoId}-${i}`);
+      }
+
+      blocosContainer.appendChild(blocoDiv);
+  });
+
+  // Atualiza a visualização
   visualizacao.innerHTML = '';
   visualizacao.appendChild(container);
-  renderBlocos();
 }
 
 
