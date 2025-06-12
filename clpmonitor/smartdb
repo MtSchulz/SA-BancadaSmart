@@ -1,37 +1,28 @@
-CREATE SCHEMA smartdb;
-USE smartdb;
+create schema smartdb;
+use smartdb;
 
 CREATE TABLE storage (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
-  capacity INT NOT NULL,
+  id int NOT NULL AUTO_INCREMENT,
+  name varchar(255) NOT NULL,
+  capacity int NOT NULL,
   PRIMARY KEY (id)
 );
 
-CREATE TABLE pedido (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  tipo VARCHAR(255) NOT NULL,
+CREATE TABLE orders (
+  id int NOT NULL AUTO_INCREMENT,
+  production_order varchar(255) NOT NULL,
   PRIMARY KEY (id)
 );
 
 CREATE TABLE block (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  position INT NOT NULL,
-  color INT NOT NULL,
-  storage_id BIGINT NOT NULL,
-  pedido_id BIGINT DEFAULT NULL,
+  id int NOT NULL AUTO_INCREMENT,
+  position int NOT NULL,
+  color int NOT NULL,
+  storage_id int NOT NULL,
+  production_order varchar(255) DEFAULT NULL,
   PRIMARY KEY (id),
-  CONSTRAINT FK_Block_Storage FOREIGN KEY (storage_id) REFERENCES storage (id),
-  CONSTRAINT FK_Block_Pedido FOREIGN KEY (pedido_id) REFERENCES pedido (id)
-);
-
-CREATE TABLE lamina (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  cor VARCHAR(255) NOT NULL,
-  padrao VARCHAR(255) NOT NULL,
-  block_id BIGINT NOT NULL,
-  PRIMARY KEY (id),
-  CONSTRAINT FK_Lamina_Block FOREIGN KEY (block_id) REFERENCES block (id)
+  KEY FK_Block_Storage (storage_id),
+  CONSTRAINT FK_Block_Storage FOREIGN KEY (storage_id) REFERENCES storage (id)
 );
 
 -- Inserções iniciais

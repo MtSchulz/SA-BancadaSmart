@@ -1,47 +1,39 @@
 package com.clpmonitor.clpmonitor.Model;
 
-import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
+
+
 
 @Entity
 public class Block {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     private int position;
 
     private int color;
 
     @ManyToOne
-    @JoinColumn(name = "storage_id")
-    private Storage storage; // Deve ser do mesmo tipo que Storage.id
+    @JoinColumn(name = "StorageId")
+    private Storage storageId;
 
-    @OneToMany(mappedBy = "block", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<Lamina> laminas;
     @ManyToOne
-    @JoinColumn(name = "pedido_id")
-    @JsonBackReference
-    private Pedido pedido;
+    @JoinColumn(name = "ProductionOrder", referencedColumnName = "id")
+    private Orders productionOrder;
 
-    // getters e setters
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -61,28 +53,19 @@ public class Block {
         this.color = color;
     }
 
-    public Storage getStorage() {
-        return storage;
+    public Storage getStorageId() {
+        return storageId;
     }
 
-    public void setStorage(Storage storage) {
-        this.storage = storage;
+    public void setStorageId(Storage storageId) {
+        this.storageId = storageId;
     }
 
-    public List<Lamina> getLaminas() {
-        return laminas;
+    public Orders getProductionOrder() {
+        return productionOrder;
     }
 
-    public void setLaminas(List<Lamina> laminas) {
-        this.laminas = laminas;
+    public void setProductionOrder(Orders productionOrder) {
+        this.productionOrder = productionOrder;
     }
-
-    public Pedido getPedido() {
-        return pedido;
-    }
-
-    public void setPedido(Pedido pedido) {
-        this.pedido = pedido;
-    }
-
 }

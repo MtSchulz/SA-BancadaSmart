@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.clpmonitor.clpmonitor.Model.Block;
 
 public interface BlockRepository extends JpaRepository<Block, Long> {
-    List<Block> findByStorage_Id(Long storageId);
+    List<Block> findByStorageId_Id(Long storageId);
 
 }
