@@ -1,9 +1,14 @@
 package com.clpmonitor.clpmonitor.Controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,6 +32,8 @@ public class ClpController {
     @Autowired
     private PedidoTesteService pedidoTesteService;
 
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+
     @GetMapping("/")
     public String index(Model model) {
         model.addAttribute("tag", new TagWriteRequest());
@@ -38,9 +45,28 @@ public class ClpController {
         return "history";
     }
 
-    @GetMapping("/clp-data-stream")
+    @GetMapping(value = "/clp-data-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamClpData() {
         return simulatorService.subscribe();
+    }
+
+    // Método auxiliar para enviar atualizações
+    public void sendUpdateToClients(Object data, String eventName) {
+        List<SseEmitter> deadEmitters = new ArrayList<>();
+
+        synchronized (this.emitters) {
+            this.emitters.forEach(emitter -> {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name(eventName)
+                            .data(data));
+                } catch (Exception e) {
+                    deadEmitters.add(emitter);
+                }
+            });
+
+            this.emitters.removeAll(deadEmitters);
+        }
     }
 
     @PostMapping("/write-tag")

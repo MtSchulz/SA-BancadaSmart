@@ -3,6 +3,8 @@ const stockData = Array(28).fill(0);
 const originalStockData = [...stockData];
 let isEditMode = false;
 let selectedColor = 0; // 0 = Vazio, 1 = Preto, 2 = Vermelho, 3 = Azul
+let clpConnected = true; // Adicione esta linha
+let lastUpdateFrom = 'db'; // Também recomendo adicionar essa que é usada mas não declarada
 
 // Função para carregar dados iniciais do estoque
 async function loadInitialStockData() {
