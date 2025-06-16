@@ -240,50 +240,66 @@ function spin(id) {
 /**
  * Envia pedido para a base de dados
  */
+// Envia pedido para a base de dados
 function enviarPedido() {
-  const formData = new FormData();
-  let hasData = false;
+  const tipo = document.getElementById("tipoPedido").value;
+  const blocos = document.querySelectorAll(".bloco");
 
-  // Iterar sobre todas as seções de bloco que estão disabled (confirmadas)
-  $('section[id^="section-bloco-"].disabled').each(function () {
-    const sectionId = this.id.split('-')[2]; // Extrai o número do bloco (1, 2, 3...)
-    hasData = true;
+  const pedido = {
+      tipo: tipo,
+      blocos: []
+  };
 
-    // Adicionar todos os campos do formulário mantendo a numeração original
-    const blockColor = $(`#block-color-${sectionId}`).val();
-    const l1Color = $(`#l1-color-${sectionId}`).val();
-    const l2Color = $(`#l2-color-${sectionId}`).val();
-    const l3Color = $(`#l3-color-${sectionId}`).val();
-    const l1Pattern = $(`#l1-pattern-${sectionId}`).val();
-    const l2Pattern = $(`#l2-pattern-${sectionId}`).val();
-    const l3Pattern = $(`#l3-pattern-${sectionId}`).val();
+  blocos.forEach((bloco, index) => {
+      const numBloco = index + 1;
 
-    // Adiciona os dados ao FormData com prefixo para cada bloco
-    formData.append(`block-color-${sectionId}`, blockColor);
-    formData.append(`l1-color-${sectionId}`, l1Color);
-    formData.append(`l2-color-${sectionId}`, l2Color);
-    formData.append(`l3-color-${sectionId}`, l3Color);
-    if (l1Pattern) formData.append(`l1-pattern-${sectionId}`, l1Pattern);
-    if (l2Pattern) formData.append(`l2-pattern-${sectionId}`, l2Pattern);
-    if (l3Pattern) formData.append(`l3-pattern-${sectionId}`, l3Pattern);
+      // Captura a cor do bloco usando o ID corretamente
+      const corBloco = document.getElementById("block-color-" + numBloco).value;
+
+      const laminas = [];
+
+      // Captura as cores e padrões das lâminas
+      const cores = [
+          document.getElementById("l1-color-" + numBloco),
+          document.getElementById("l2-color-" + numBloco),
+          document.getElementById("l3-color-" + numBloco)
+      ];
+
+      const padroes = [
+          document.getElementById("l1-pattern-" + numBloco),
+          document.getElementById("l2-pattern-" + numBloco),
+          document.getElementById("l3-pattern-" + numBloco)
+      ];
+
+      for (let i = 0; i < 3; i++) {
+          laminas.push({
+              cor: cores[i].value,
+              padrao: padroes[i].value
+          });
+      }
+
+      pedido.blocos.push({
+          cor: corBloco,
+          laminas: laminas
+      });
   });
 
-  if (!hasData) {
-    alert("Nenhum bloco confirmado para envio!");
-    return;
-  }
+  //console.log("Pedido:", pedido);
+  console.log(JSON.stringify(pedido, null, 2));
 
-  // Adiciona o número total de blocos confirmados
-  formData.append('total-blocks', $('section[id^="section-bloco-"].disabled').length);
 
-  // Enviar para o servidor
-  fetch("/pedidoTeste", {
-    method: "POST",
-    body: formData,
-  }).then((response) => {
-    if (response.redirected) {
-      window.location.href = response.url;
-    }
+
+  fetch("/store/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([pedido])
+  }).then(res => {
+      if (res.ok) {
+          alert("Pedido enviado com sucesso!");
+          listarPedidos();
+      } else {
+          alert("Erro ao enviar pedido.");
+      }
   });
 }
 
