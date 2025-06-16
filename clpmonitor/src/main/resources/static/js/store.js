@@ -350,6 +350,7 @@ function listarPedidos() {
 /**
  * Lista o histórico de pedidos
  */
+/* 
 function listarHistorico() {
   fetch("/store/orders/history")
     .then(response => response.json())
@@ -407,7 +408,7 @@ function listarHistorico() {
         "<p>Erro ao carregar histórico de pedidos.</p>";
     });
 }
-
+*/
 /**
  * Filtra o histórico de pedidos
  */
