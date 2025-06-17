@@ -224,6 +224,11 @@ h1 {
     top: 50%;
     transform: translateY(-50%);
     right: 10px;
+    z-index: 9999;
+}
+
+img[src*="#"]{
+    display: none;
 }
 
 .pedido-view.spin button.spin {
@@ -380,19 +385,11 @@ h1 {
     gap: 30px;
 }
 
-.visualizacao-bloco {
+[class^="visualizacao-bloco"] {
     position: relative;
     width: 100%;
-    background-color: #f9f9f9;
     border-radius: 8px;
     padding: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.visualizacao-bloco h3 {
-    margin-bottom: 10px;
-    color: #333;
-    font-size: 1.2rem;
 }
 
 .visualizacao-pedido-view {
@@ -408,7 +405,6 @@ h1 {
 .visualizacao-pedido-view .imagem {
     position: absolute;
     width: 100%;
-    top: 50%;
     left: 0;
     transform: translateY(-50%);
 }

@@ -245,6 +245,7 @@ function enviarPedido() {
   const formData = new FormData();
   let hasData = false;
 
+<<<<<<< Updated upstream
   // Iterar sobre todas as seções de bloco que estão disabled (confirmadas)
   $('section[id^="section-bloco-"].disabled').each(function () {
     const sectionId = this.id.split('-')[2]; // Extrai o número do bloco (1, 2, 3...)
@@ -267,6 +268,45 @@ function enviarPedido() {
     if (l1Pattern) formData.append(`l1-pattern-${sectionId}`, l1Pattern);
     if (l2Pattern) formData.append(`l2-pattern-${sectionId}`, l2Pattern);
     if (l3Pattern) formData.append(`l3-pattern-${sectionId}`, l3Pattern);
+=======
+  const pedido = {
+    tipo: tipo,
+    blocos: []
+  };
+
+  blocos.forEach((bloco, index) => {
+    const numBloco = index + 1;
+
+    // Captura a cor do bloco usando o ID corretamente
+    const corBloco = document.getElementById("block-color-" + numBloco).value;
+
+    const laminas = [];
+
+    // Captura as cores e padrões das lâminas
+    const cores = [
+      document.getElementById("l1-color-" + numBloco),
+      document.getElementById("l2-color-" + numBloco),
+      document.getElementById("l3-color-" + numBloco)
+    ];
+
+    const padroes = [
+      document.getElementById("l1-pattern-" + numBloco),
+      document.getElementById("l2-pattern-" + numBloco),
+      document.getElementById("l3-pattern-" + numBloco)
+    ];
+
+    for (let i = 0; i < 3; i++) {
+      laminas.push({
+        cor: cores[i].value,
+        padrao: padroes[i].value
+      });
+    }
+
+    pedido.blocos.push({
+      cor: corBloco,
+      laminas: laminas
+    });
+>>>>>>> Stashed changes
   });
 /*
   if (!hasData) {
@@ -277,6 +317,7 @@ function enviarPedido() {
   // Adiciona o número total de blocos confirmados
   formData.append('total-blocks', $('section[id^="section-bloco-"].disabled').length);
 
+<<<<<<< Updated upstream
   // Enviar para o servidor
   fetch("/pedidoTeste", {
     method: "POST",
@@ -284,6 +325,23 @@ function enviarPedido() {
   }).then((response) => {
     if (response.redirected) {
       window.location.href = response.url;
+=======
+  //console.log("Pedido:", pedido);
+  console.log(JSON.stringify(pedido, null, 2));
+
+
+
+  fetch("/store/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify([pedido])
+  }).then(res => {
+    if (res.ok) {
+      alert("Pedido enviado com sucesso!");
+      listarPedidos();
+    } else {
+      alert("Erro ao enviar pedido.");
+>>>>>>> Stashed changes
     }
   });
 }
@@ -497,11 +555,17 @@ function atualizarVisualizacao() {
 
     // Cria container do bloco
     const blocoDiv = document.createElement('div');
+<<<<<<< Updated upstream
     blocoDiv.className = 'visualizacao-bloco stacked';
+=======
+    blocoDiv.classList.add(`visualizacao-bloco-${blocoId}`, 'stacked');
+    blocoDiv
+>>>>>>> Stashed changes
 
     // Container da visualização (pedido-view)
     const viewDiv = document.createElement('div');
     viewDiv.className = 'visualizacao-pedido-view' + (isSpun ? ' spin' : '');
+<<<<<<< Updated upstream
     blocoDiv.appendChild(viewDiv);
 
     // Função para adicionar imagens com z-index correto
@@ -510,6 +574,18 @@ function atualizarVisualizacao() {
       if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
         const img = document.createElement('img');
         img.className = 'imagem';
+=======
+    console.log(blocoId)
+    blocoDiv.appendChild(viewDiv);
+
+    // Função para adicionar imagens com z-index correto
+    const addImage = (elementId, zIndex, addId = false) => {
+      const originalImg = document.getElementById(elementId);
+      if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
+        const img = document.createElement('img');
+        //img.id = `bloco${blocoId}`;
+        img.className = 'imagem '+`bloco${blocoId}`;
+>>>>>>> Stashed changes
         img.src = originalImg.src;
         img.alt = originalImg.alt;
         img.style.zIndex = zIndex;
@@ -533,10 +609,12 @@ function atualizarVisualizacao() {
 
     blocosContainer.appendChild(blocoDiv);
   });
-
+  
   // Atualiza a visualização
   visualizacao.innerHTML = '';
   visualizacao.appendChild(container);
+
+  atualizarAlturas();
 }
 
 /**
@@ -700,3 +778,25 @@ window.addEventListener('load', function () {
 
 // Carrega o histórico ao abrir a página
 document.addEventListener('DOMContentLoaded', listarHistorico);
+
+
+function atualizarAlturas() {
+  const bloco1 = Array.from(document.querySelectorAll(".bloco1"));
+  const bloco2 = Array.from(document.querySelectorAll(".bloco2"));
+  const bloco3 = Array.from(document.querySelectorAll(".bloco3"));
+
+  const alturaImagem = bloco1[0]?.offsetHeight || 0;
+
+  console.log(alturaImagem);
+
+  const fator = 0.445;
+  const dif = 40;
+
+  const altura1 = `${(1 * fator * alturaImagem) - dif}px`;
+  const altura2 = `${(2 * fator * alturaImagem) - dif}px`;
+  const altura3 = `${(3 * fator * alturaImagem) - dif}px`;
+
+  bloco1.forEach(el => el.style.top = altura1);
+  bloco2.forEach(el => el.style.top = altura2);
+  bloco3.forEach(el => el.style.top = altura3);
+}
