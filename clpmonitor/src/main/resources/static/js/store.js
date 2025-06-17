@@ -233,6 +233,29 @@ function spin(id) {
   lamina3.src = newSrc3;
 }
 
+/*fetch("/pedidoTeste", {
+  method: "POST",
+  body: formData,
+}).then((response) => {
+  if (response.redirected) {
+    window.location.href = response.url;
+    //console.log("Pedido:", pedido);
+    console.log(JSON.stringify(pedido, null, 2));
+    fetch("/store/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([pedido])
+    }).then(res => {
+      if (res.ok) {
+        alert("Pedido enviado com sucesso!");
+        listarPedidos();
+      } else {
+        alert("Erro ao enviar pedido.");
+      }
+    });
+  }
+});*/
+
 // =============================================
 // Funções de manipulação de pedidos
 // =============================================
@@ -242,63 +265,23 @@ function spin(id) {
  */
 // Envia pedido para a base de dados
 function enviarPedido() {
-  const formData = new FormData();
-  let hasData = false;
-
-<<<<<<< Updated upstream
-  // Iterar sobre todas as seções de bloco que estão disabled (confirmadas)
-  $('section[id^="section-bloco-"].disabled').each(function () {
-    const sectionId = this.id.split('-')[2]; // Extrai o número do bloco (1, 2, 3...)
-    hasData = true;
-
-    // Adicionar todos os campos do formulário mantendo a numeração original
-    const blockColor = $(`#block-color-${sectionId}`).val();
-    const l1Color = $(`#l1-color-${sectionId}`).val();
-    const l2Color = $(`#l2-color-${sectionId}`).val();
-    const l3Color = $(`#l3-color-${sectionId}`).val();
-    const l1Pattern = $(`#l1-pattern-${sectionId}`).val();
-    const l2Pattern = $(`#l2-pattern-${sectionId}`).val();
-    const l3Pattern = $(`#l3-pattern-${sectionId}`).val();
-
-    // Adiciona os dados ao FormData com prefixo para cada bloco
-    formData.append(`block-color-${sectionId}`, blockColor);
-    formData.append(`l1-color-${sectionId}`, l1Color);
-    formData.append(`l2-color-${sectionId}`, l2Color);
-    formData.append(`l3-color-${sectionId}`, l3Color);
-    if (l1Pattern) formData.append(`l1-pattern-${sectionId}`, l1Pattern);
-    if (l2Pattern) formData.append(`l2-pattern-${sectionId}`, l2Pattern);
-    if (l3Pattern) formData.append(`l3-pattern-${sectionId}`, l3Pattern);
-=======
+  const tipo = document.getElementById("tipoPedido").value;
   const pedido = {
     tipo: tipo,
     blocos: []
   };
 
-  blocos.forEach((bloco, index) => {
-    const numBloco = index + 1;
+  // Captura dados de todos os blocos visíveis
+  const blocosCount = document.querySelectorAll('[id^="bloco-container-"]').length;
 
-    // Captura a cor do bloco usando o ID corretamente
-    const corBloco = document.getElementById("block-color-" + numBloco).value;
-
+  for (let i = 1; i <= blocosCount; i++) {
+    const corBloco = document.getElementById(`block-color-${i}`).value;
     const laminas = [];
 
-    // Captura as cores e padrões das lâminas
-    const cores = [
-      document.getElementById("l1-color-" + numBloco),
-      document.getElementById("l2-color-" + numBloco),
-      document.getElementById("l3-color-" + numBloco)
-    ];
-
-    const padroes = [
-      document.getElementById("l1-pattern-" + numBloco),
-      document.getElementById("l2-pattern-" + numBloco),
-      document.getElementById("l3-pattern-" + numBloco)
-    ];
-
-    for (let i = 0; i < 3; i++) {
+    for (let j = 1; j <= 3; j++) {
       laminas.push({
-        cor: cores[i].value,
-        padrao: padroes[i].value
+        cor: document.getElementById(`l${j}-color-${i}`).value,
+        padrao: document.getElementById(`l${j}-pattern-${i}`).value
       });
     }
 
@@ -306,44 +289,25 @@ function enviarPedido() {
       cor: corBloco,
       laminas: laminas
     });
->>>>>>> Stashed changes
-  });
-/*
-  if (!hasData) {
-    alert("Nenhum bloco confirmado para envio!");
-    return;
   }
-*/
-  // Adiciona o número total de blocos confirmados
-  formData.append('total-blocks', $('section[id^="section-bloco-"].disabled').length);
-
-<<<<<<< Updated upstream
-  // Enviar para o servidor
-  fetch("/pedidoTeste", {
-    method: "POST",
-    body: formData,
-  }).then((response) => {
-    if (response.redirected) {
-      window.location.href = response.url;
-=======
-  //console.log("Pedido:", pedido);
-  console.log(JSON.stringify(pedido, null, 2));
-
-
 
   fetch("/store/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify([pedido])
-  }).then(res => {
-    if (res.ok) {
-      alert("Pedido enviado com sucesso!");
-      listarPedidos();
-    } else {
-      alert("Erro ao enviar pedido.");
->>>>>>> Stashed changes
-    }
-  });
+  })
+    .then(res => {
+      if (res.ok) {
+        alert("Pedido enviado com sucesso!");
+        listarPedidos();
+      } else {
+        alert("Erro ao enviar pedido.");
+      }
+    })
+    .catch(error => {
+      console.error("Erro:", error);
+      alert("Falha na conexão com o servidor");
+    });
 }
 
 window.onclick = function (event) {
@@ -393,6 +357,9 @@ function listarPedidos() {
     });
 }
 
+
+
+
 // =============================================
 // Funções de histórico
 // =============================================
@@ -407,32 +374,32 @@ function listarHistorico() {
     .then(data => {
       const listaContainer = document.getElementById("listaHistorico");
       listaContainer.innerHTML = "";
-
+ 
       if (data.length === 0) {
         listaContainer.innerHTML = "<p>Nenhum pedido histórico encontrado.</p>";
         document.getElementById("totalPedidos").textContent = "0";
         return;
       }
-
+ 
       document.getElementById("totalPedidos").textContent = data.length;
-
+ 
       data.forEach((pedido, index) => {
         const pedidoDiv = document.createElement("div");
         pedidoDiv.classList.add("pedido");
-
+ 
         const dataPedido = pedido.data ? new Date(pedido.data).toLocaleString() : "Data não disponível";
-
+ 
         pedidoDiv.innerHTML = `
                     <div class="pedido-header">
                         <h3>Pedido #${pedido.id || index + 1} - ${dataPedido}</h3>
                         <span class="pedido-tipo">Tipo: ${pedido.tipo}</span>
                     </div>
                 `;
-
+ 
         pedido.blocos.forEach((bloco, i) => {
           const blocoDiv = document.createElement("div");
           blocoDiv.classList.add("bloco-info");
-
+ 
           blocoDiv.innerHTML = `
                         <strong>Bloco ${i + 1}</strong> - Cor: ${bloco.cor || "Não especificada"}
                         <div class="laminas-container">
@@ -445,10 +412,10 @@ function listarHistorico() {
                             `).join("")}
                         </div>
                     `;
-
+ 
           pedidoDiv.appendChild(blocoDiv);
         });
-
+ 
         listaContainer.appendChild(pedidoDiv);
       });
     })
@@ -528,94 +495,60 @@ document.addEventListener('click', function (event) {
 // Visualização completa do bloco
 function atualizarVisualizacao() {
   const visualizacao = document.getElementById('visualizacaoBloco');
+  if (!visualizacao) return;
+
   visualizacao.innerHTML = '<p class="loading">Carregando visualização...</p>';
 
-  // Cria container principal
   const container = document.createElement('div');
   container.className = 'visualizacao-container';
 
-  // Cria container para os blocos empilhados
   const blocosContainer = document.createElement('div');
   blocosContainer.className = 'visualizacao-blocos stacked';
   container.appendChild(blocosContainer);
 
-  // Obtém todos os blocos configurados
-  const blocos = document.querySelectorAll('.bloco');
-
-  if (blocos.length === 0) {
-    visualizacao.innerHTML = '<p>Configure pelo menos um bloco</p>';
-    return;
-  }
-
-  // Para cada bloco, cria uma visualização
-  blocos.forEach((bloco, index) => {
+  document.querySelectorAll('.bloco').forEach((bloco, index) => {
     const blocoId = bloco.id.split('-')[2] || (index + 1);
     const pedidoView = document.getElementById(`pedido-view${blocoId}`);
     const isSpun = pedidoView ? pedidoView.classList.contains('spin') : false;
 
-    // Cria container do bloco
     const blocoDiv = document.createElement('div');
-<<<<<<< Updated upstream
-    blocoDiv.className = 'visualizacao-bloco stacked';
-=======
-    blocoDiv.classList.add(`visualizacao-bloco-${blocoId}`, 'stacked');
-    blocoDiv
->>>>>>> Stashed changes
+    blocoDiv.className = `visualizacao-bloco-${blocoId} visualizacao-bloco stacked`;
 
-    // Container da visualização (pedido-view)
     const viewDiv = document.createElement('div');
-    viewDiv.className = 'visualizacao-pedido-view' + (isSpun ? ' spin' : '');
-<<<<<<< Updated upstream
-    blocoDiv.appendChild(viewDiv);
+    viewDiv.className = `visualizacao-pedido-view${isSpun ? ' spin' : ''}`;
 
-    // Função para adicionar imagens com z-index correto
+    // Função helper para adicionar imagens
     const addImage = (elementId, zIndex) => {
-      const originalImg = document.getElementById(elementId);
-      if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
+      const imgElement = document.getElementById(elementId);
+      if (imgElement && imgElement.src && !imgElement.src.includes('#')) {
         const img = document.createElement('img');
         img.className = 'imagem';
-=======
-    console.log(blocoId)
-    blocoDiv.appendChild(viewDiv);
-
-    // Função para adicionar imagens com z-index correto
-    const addImage = (elementId, zIndex, addId = false) => {
-      const originalImg = document.getElementById(elementId);
-      if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
-        const img = document.createElement('img');
-        //img.id = `bloco${blocoId}`;
-        img.className = 'imagem '+`bloco${blocoId}`;
->>>>>>> Stashed changes
-        img.src = originalImg.src;
-        img.alt = originalImg.alt;
+        img.src = imgElement.src;
+        img.alt = imgElement.alt;
         img.style.zIndex = zIndex;
         viewDiv.appendChild(img);
       }
     };
 
-    // Adiciona as imagens na ordem correta com z-index específico
-    // Bloco (fundo)
+    // Adiciona componentes na ordem correta
     addImage(`bloco-${blocoId}`, 1);
-
-    // Lâminas
     addImage(`lamina${blocoId}-3`, 10);
     addImage(`lamina${blocoId}-1`, 20);
     addImage(`lamina${blocoId}-2`, 30);
 
-    // Padrões
     for (let i = 1; i <= 3; i++) {
       addImage(`padrao${blocoId}-${i}`, 70);
     }
 
+    blocoDiv.appendChild(viewDiv);
     blocosContainer.appendChild(blocoDiv);
   });
-  
-  // Atualiza a visualização
+
   visualizacao.innerHTML = '';
   visualizacao.appendChild(container);
-
   atualizarAlturas();
 }
+window.atualizarVisualizacao = atualizarVisualizacao;
 
 /**
  * Carrega as cores disponíveis do backend
@@ -767,9 +700,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
 // Event listeners para redimensionamento e carregamento
-window.addEventListener('resize', addMenuButton);
+window.addEventListener('resize', () => {
+  addMenuButton();
+  atualizarAlturas();
+});
+
 window.addEventListener('load', function () {
   addMenuButton();
   renderBlocos();
@@ -777,26 +713,32 @@ window.addEventListener('load', function () {
 });
 
 // Carrega o histórico ao abrir a página
-document.addEventListener('DOMContentLoaded', listarHistorico);
+document.addEventListener("DOMContentLoaded", () => {
+  addMenuButton();
+  renderBlocos();
+
+  // Event listeners para elementos dinâmicos
+  document.addEventListener('change', function (e) {
+    if (e.target.matches('select')) {
+      atualizarVisualizacao();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.spin')) {
+      setTimeout(atualizarVisualizacao, 300);
+    }
+  });
+});
 
 
 function atualizarAlturas() {
-  const bloco1 = Array.from(document.querySelectorAll(".bloco1"));
-  const bloco2 = Array.from(document.querySelectorAll(".bloco2"));
-  const bloco3 = Array.from(document.querySelectorAll(".bloco3"));
-
+  const bloco1 = document.querySelectorAll(".bloco1");
   const alturaImagem = bloco1[0]?.offsetHeight || 0;
-
-  console.log(alturaImagem);
-
   const fator = 0.445;
   const dif = 40;
 
-  const altura1 = `${(1 * fator * alturaImagem) - dif}px`;
-  const altura2 = `${(2 * fator * alturaImagem) - dif}px`;
-  const altura3 = `${(3 * fator * alturaImagem) - dif}px`;
-
-  bloco1.forEach(el => el.style.top = altura1);
-  bloco2.forEach(el => el.style.top = altura2);
-  bloco3.forEach(el => el.style.top = altura3);
+  bloco1.forEach(el => el.style.top = `${(1 * fator * alturaImagem) - dif}px`);
+  document.querySelectorAll(".bloco2").forEach(el => el.style.top = `${(2 * fator * alturaImagem) - dif}px`);
+  document.querySelectorAll(".bloco3").forEach(el => el.style.top = `${(3 * fator * alturaImagem) - dif}px`);
 }
