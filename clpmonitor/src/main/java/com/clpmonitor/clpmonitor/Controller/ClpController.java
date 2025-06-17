@@ -1,6 +1,5 @@
 package com.clpmonitor.clpmonitor.Controller;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.clpmonitor.clpmonitor.Model.TagWriteRequest;
@@ -148,9 +148,9 @@ public class ClpController {
         return "redirect:/fragments-formulario";
     }
 
-    @PostMapping("/pedidoTeste")
-    public String peditoTeste() {
-        pedidoTesteService.enviarPedidoTeste(null);
+     @PostMapping("/pedidoTeste")
+    public String peditoTeste(@RequestParam Map<String, String> formData) {
+        pedidoTesteService.enviarPedidoTeste(formData);
         return "redirect:/store";
     }
 

@@ -242,65 +242,57 @@ function spin(id) {
  */
 // Envia pedido para a base de dados
 function enviarPedido() {
-  const tipo = document.getElementById("tipoPedido").value;
-  const blocos = document.querySelectorAll(".bloco");
+  const formData = new FormData();
+  let hasData = false;
 
-  const pedido = {
-      tipo: tipo,
-      blocos: []
-  };
+  // Iterar sobre todas as seções de bloco que estão disabled (confirmadas)
+  $('section[id^="section-bloco-"].disabled').each(function () {
+    const sectionId = this.id.split('-')[2]; // Extrai o número do bloco (1, 2, 3...)
+    hasData = true;
 
-  blocos.forEach((bloco, index) => {
-      const numBloco = index + 1;
+    // Adicionar todos os campos do formulário mantendo a numeração original
+    const blockColor = $(`#block-color-${sectionId}`).val();
+    const l1Color = $(`#l1-color-${sectionId}`).val();
+    const l2Color = $(`#l2-color-${sectionId}`).val();
+    const l3Color = $(`#l3-color-${sectionId}`).val();
+    const l1Pattern = $(`#l1-pattern-${sectionId}`).val();
+    const l2Pattern = $(`#l2-pattern-${sectionId}`).val();
+    const l3Pattern = $(`#l3-pattern-${sectionId}`).val();
 
-      // Captura a cor do bloco usando o ID corretamente
-      const corBloco = document.getElementById("block-color-" + numBloco).value;
-
-      const laminas = [];
-
-      // Captura as cores e padrões das lâminas
-      const cores = [
-          document.getElementById("l1-color-" + numBloco),
-          document.getElementById("l2-color-" + numBloco),
-          document.getElementById("l3-color-" + numBloco)
-      ];
-
-      const padroes = [
-          document.getElementById("l1-pattern-" + numBloco),
-          document.getElementById("l2-pattern-" + numBloco),
-          document.getElementById("l3-pattern-" + numBloco)
-      ];
-
-      for (let i = 0; i < 3; i++) {
-          laminas.push({
-              cor: cores[i].value,
-              padrao: padroes[i].value
-          });
-      }
-
-      pedido.blocos.push({
-          cor: corBloco,
-          laminas: laminas
-      });
+    // Adiciona os dados ao FormData com prefixo para cada bloco
+    formData.append(`block-color-${sectionId}`, blockColor);
+    formData.append(`l1-color-${sectionId}`, l1Color);
+    formData.append(`l2-color-${sectionId}`, l2Color);
+    formData.append(`l3-color-${sectionId}`, l3Color);
+    if (l1Pattern) formData.append(`l1-pattern-${sectionId}`, l1Pattern);
+    if (l2Pattern) formData.append(`l2-pattern-${sectionId}`, l2Pattern);
+    if (l3Pattern) formData.append(`l3-pattern-${sectionId}`, l3Pattern);
   });
+/*
+  if (!hasData) {
+    alert("Nenhum bloco confirmado para envio!");
+    return;
+  }
+*/
+  // Adiciona o número total de blocos confirmados
+  formData.append('total-blocks', $('section[id^="section-bloco-"].disabled').length);
 
-  //console.log("Pedido:", pedido);
-  console.log(JSON.stringify(pedido, null, 2));
-
-
-
-  fetch("/store/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([pedido])
-  }).then(res => {
-      if (res.ok) {
-          alert("Pedido enviado com sucesso!");
-          listarPedidos();
-      } else {
-          alert("Erro ao enviar pedido.");
-      }
+  // Enviar para o servidor
+  fetch("/pedidoTeste", {
+    method: "POST",
+    body: formData,
+  }).then((response) => {
+    if (response.redirected) {
+      window.location.href = response.url;
+    }
   });
+}
+
+window.onclick = function (event) {
+  const modal = document.getElementById('pedidoModal');
+  if (event.target == modal) {
+    closeModal();
+  }
 }
 
 /**
@@ -483,7 +475,7 @@ function atualizarVisualizacao() {
   // Cria container principal
   const container = document.createElement('div');
   container.className = 'visualizacao-container';
-  
+
   // Cria container para os blocos empilhados
   const blocosContainer = document.createElement('div');
   blocosContainer.className = 'visualizacao-blocos stacked';
@@ -491,55 +483,55 @@ function atualizarVisualizacao() {
 
   // Obtém todos os blocos configurados
   const blocos = document.querySelectorAll('.bloco');
-  
+
   if (blocos.length === 0) {
-      visualizacao.innerHTML = '<p>Configure pelo menos um bloco</p>';
-      return;
+    visualizacao.innerHTML = '<p>Configure pelo menos um bloco</p>';
+    return;
   }
 
   // Para cada bloco, cria uma visualização
   blocos.forEach((bloco, index) => {
-      const blocoId = bloco.id.split('-')[2] || (index + 1);
-      const pedidoView = document.getElementById(`pedido-view${blocoId}`);
-      const isSpun = pedidoView ? pedidoView.classList.contains('spin') : false;
+    const blocoId = bloco.id.split('-')[2] || (index + 1);
+    const pedidoView = document.getElementById(`pedido-view${blocoId}`);
+    const isSpun = pedidoView ? pedidoView.classList.contains('spin') : false;
 
-      // Cria container do bloco
-      const blocoDiv = document.createElement('div');
-      blocoDiv.className = 'visualizacao-bloco stacked';
-      
-      // Container da visualização (pedido-view)
-      const viewDiv = document.createElement('div');
-      viewDiv.className = 'visualizacao-pedido-view' + (isSpun ? ' spin' : '');
-      blocoDiv.appendChild(viewDiv);
+    // Cria container do bloco
+    const blocoDiv = document.createElement('div');
+    blocoDiv.className = 'visualizacao-bloco stacked';
 
-      // Função para adicionar imagens com z-index correto
-      const addImage = (elementId, zIndex) => {
-          const originalImg = document.getElementById(elementId);
-          if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
-              const img = document.createElement('img');
-              img.className = 'imagem';
-              img.src = originalImg.src;
-              img.alt = originalImg.alt;
-              img.style.zIndex = zIndex;
-              viewDiv.appendChild(img);
-          }
-      };
+    // Container da visualização (pedido-view)
+    const viewDiv = document.createElement('div');
+    viewDiv.className = 'visualizacao-pedido-view' + (isSpun ? ' spin' : '');
+    blocoDiv.appendChild(viewDiv);
 
-      // Adiciona as imagens na ordem correta com z-index específico
-      // Bloco (fundo)
-      addImage(`bloco-${blocoId}`, 1);
-      
-      // Lâminas
-      addImage(`lamina${blocoId}-3`, 10);
-      addImage(`lamina${blocoId}-1`, 20);
-      addImage(`lamina${blocoId}-2`, 30);
-      
-      // Padrões
-      for (let i = 1; i <= 3; i++) {
-          addImage(`padrao${blocoId}-${i}`, 70);
+    // Função para adicionar imagens com z-index correto
+    const addImage = (elementId, zIndex) => {
+      const originalImg = document.getElementById(elementId);
+      if (originalImg && originalImg.src && !originalImg.src.includes('#')) {
+        const img = document.createElement('img');
+        img.className = 'imagem';
+        img.src = originalImg.src;
+        img.alt = originalImg.alt;
+        img.style.zIndex = zIndex;
+        viewDiv.appendChild(img);
       }
+    };
 
-      blocosContainer.appendChild(blocoDiv);
+    // Adiciona as imagens na ordem correta com z-index específico
+    // Bloco (fundo)
+    addImage(`bloco-${blocoId}`, 1);
+
+    // Lâminas
+    addImage(`lamina${blocoId}-3`, 10);
+    addImage(`lamina${blocoId}-1`, 20);
+    addImage(`lamina${blocoId}-2`, 30);
+
+    // Padrões
+    for (let i = 1; i <= 3; i++) {
+      addImage(`padrao${blocoId}-${i}`, 70);
+    }
+
+    blocosContainer.appendChild(blocoDiv);
   });
 
   // Atualiza a visualização
