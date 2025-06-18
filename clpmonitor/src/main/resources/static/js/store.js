@@ -499,30 +499,32 @@ function atualizarVisualizacao() {
 
   visualizacao.innerHTML = '<p class="loading">Carregando visualização...</p>';
 
+  // Cria container principal
   const container = document.createElement('div');
-  container.className = 'visualizacao-container';
+  container.className = 'visualizacao-container stacked-view';
 
-  const blocosContainer = document.createElement('div');
-  blocosContainer.className = 'visualizacao-blocos stacked';
-  container.appendChild(blocosContainer);
+  // Cria container para os blocos empilhados
+  const blocosStack = document.createElement('div');
+  blocosStack.className = 'blocos-stack';
 
-  document.querySelectorAll('.bloco').forEach((bloco, index) => {
-    const blocoId = bloco.id.split('-')[2] || (index + 1);
-    const pedidoView = document.getElementById(`pedido-view${blocoId}`);
-    const isSpun = pedidoView ? pedidoView.classList.contains('spin') : false;
+  // Obtém todos os blocos visíveis na interface
+  const blocosCount = document.querySelectorAll('[id^="bloco-container-"]').length;
 
+  // Adiciona cada bloco à visualização empilhada
+  for (let i = 1; i <= blocosCount; i++) {
     const blocoDiv = document.createElement('div');
-    blocoDiv.className = `visualizacao-bloco-${blocoId} visualizacao-bloco stacked`;
-
+    blocoDiv.className = `bloco-view bloco-${i}`;
+    
+    // Cria a visualização do bloco individual
     const viewDiv = document.createElement('div');
-    viewDiv.className = `visualizacao-pedido-view${isSpun ? ' spin' : ''}`;
+    viewDiv.className = 'bloco-individual-view';
 
-    // Função helper para adicionar imagens
+    // Adiciona imagens na ordem correta
     const addImage = (elementId, zIndex) => {
       const imgElement = document.getElementById(elementId);
       if (imgElement && imgElement.src && !imgElement.src.includes('#')) {
         const img = document.createElement('img');
-        img.className = 'imagem';
+        img.className = 'stacked-image';
         img.src = imgElement.src;
         img.alt = imgElement.alt;
         img.style.zIndex = zIndex;
@@ -530,25 +532,27 @@ function atualizarVisualizacao() {
       }
     };
 
-    // Adiciona componentes na ordem correta
-    addImage(`bloco-${blocoId}`, 1);
-    addImage(`lamina${blocoId}-3`, 10);
-    addImage(`lamina${blocoId}-1`, 20);
-    addImage(`lamina${blocoId}-2`, 30);
-
-    for (let i = 1; i <= 3; i++) {
-      addImage(`padrao${blocoId}-${i}`, 70);
+    // Adiciona componentes na ordem correta para empilhamento
+    addImage(`bloco-${i}`, 1); // Bloco base
+    
+    // Lâminas
+    addImage(`lamina${i}-3`, 10); // Lâmina esquerda (ou direita se girado)
+    addImage(`lamina${i}-1`, 20); // Lâmina direita (ou esquerda se girado)
+    addImage(`lamina${i}-2`, 30); // Lâmina central
+    
+    // Padrões
+    for (let j = 1; j <= 3; j++) {
+      addImage(`padrao${i}-${j}`, 40 + j);
     }
 
     blocoDiv.appendChild(viewDiv);
-    blocosContainer.appendChild(blocoDiv);
-  });
+    blocosStack.appendChild(blocoDiv);
+  }
 
+  container.appendChild(blocosStack);
   visualizacao.innerHTML = '';
   visualizacao.appendChild(container);
-  atualizarAlturas();
 }
-window.atualizarVisualizacao = atualizarVisualizacao;
 
 /**
  * Carrega as cores disponíveis do backend
@@ -692,6 +696,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Eventos para atualizar visualização
   atualizarVisualizacao();
+  ajustarAlturaVisualizacao();
   $(document).on('change', 'select', function () {
     atualizarVisualizacao();
   });
@@ -703,7 +708,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Event listeners para redimensionamento e carregamento
 window.addEventListener('resize', () => {
   addMenuButton();
-  atualizarAlturas();
+  atualizarVisualizacao();
 });
 
 window.addEventListener('load', function () {
@@ -722,23 +727,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.matches('select')) {
       atualizarVisualizacao();
     }
-  });
+  }),
 
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('.spin')) {
-      setTimeout(atualizarVisualizacao, 300);
-    }
-  });
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('.spin')) {
+        setTimeout(atualizarVisualizacao, 300);
+      }
+    });
 });
 
+function ajustarAlturaVisualizacao() {
+  const container = document.querySelector('.visualizacao-container');
+  const blocos = document.querySelectorAll('.visualizacao-bloco.stacked');
 
-function atualizarAlturas() {
-  const bloco1 = document.querySelectorAll(".bloco1");
-  const alturaImagem = bloco1[0]?.offsetHeight || 0;
-  const fator = 0.445;
-  const dif = 40;
-
-  bloco1.forEach(el => el.style.top = `${(1 * fator * alturaImagem) - dif}px`);
-  document.querySelectorAll(".bloco2").forEach(el => el.style.top = `${(2 * fator * alturaImagem) - dif}px`);
-  document.querySelectorAll(".bloco3").forEach(el => el.style.top = `${(3 * fator * alturaImagem) - dif}px`);
+  if (blocos.length > 0 && container) {
+    const altura = blocos.length * 180 - ((blocos.length - 1) * 40); // 180px altura de bloco, -40px de sobreposição
+    container.style.height = `${altura}px`;
+  }
 }

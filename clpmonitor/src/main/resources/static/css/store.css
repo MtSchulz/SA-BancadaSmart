@@ -227,7 +227,7 @@ h1 {
     z-index: 9999;
 }
 
-img[src*="#"]{
+img[src*="#"] {
     display: none;
 }
 
@@ -368,16 +368,7 @@ img[src*="#"]{
     flex-wrap: wrap;
 }
 
-/* Visualização Completa */
-.visualizacao-container {
-    background-color: white;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 350px;
-    margin: 0 auto;
-}
+/* Visualização Completa 8====D*/
 
 .visualizacao-blocos {
     display: flex;
@@ -406,11 +397,10 @@ img[src*="#"]{
     position: absolute;
     width: 100%;
     left: 0;
-    transform: translateY(-50%);
 }
 
 .visualizacao-pedido-view.spin .imagem {
-    transform: translateY(-50%) scaleX(-1);
+    transform: scaleX(-1);
 }
 
 /* Hierarquia de z-index específica */
@@ -423,15 +413,15 @@ img[src*="#"]{
 }
 
 [id^="lamina"][id$="-1"] {
-    z-index: 20;  
+    z-index: 20;
 }
 
 [id^="lamina"][id$="-2"] {
-    z-index: 30;  
+    z-index: 30;
 }
 
 [id^="lamina"][id$="-3"] {
-    z-index: 10;  
+    z-index: 10;
 }
 
 [id^="bloco"][id$="-3"] {
@@ -488,11 +478,11 @@ img[src*="#"]{
     .visualizacao-container {
         padding: 15px;
     }
-    
+
     .visualizacao-bloco {
         padding: 10px;
     }
-    
+
     .visualizacao-pedido-view {
         height: 180px;
     }
@@ -519,10 +509,6 @@ img[src*="#"]{
     border-radius: 0;
 }
 
-.visualizacao-bloco.stacked:not(:first-child) {
-    margin-top: -40px; /* Sobreposição dos blocos */
-}
-
 .visualizacao-bloco.stacked .visualizacao-pedido-view {
     height: 180px;
     background-color: transparent;
@@ -543,5 +529,84 @@ img[src*="#"]{
     width: 100%;
     max-width: 350px;
     margin: 0 auto;
-    overflow: hidden;
+    overflow: visible;
+    height: auto;
+}
+
+
+/* Visualização Empilhada */
+
+
+.bloco-view {
+    filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1));
+    position: relative;
+    width: 100%;
+    margin-bottom: -40px;
+}
+
+.bloco-view.bloco-1 {
+    top: 0px;
+}
+
+.bloco-view.bloco-2 {
+    top: -88px;
+}
+
+.bloco-view.bloco-3 {
+    top: -175px;
+}
+
+.blocos-stack {
+    position: relative;
+    width: 100%;
+    max-width: 350px;
+    max-height: 350px;
+    margin: 0 auto;
+}
+
+#visualizacaoBloco {
+    position: relative;
+    width: 100%;
+}
+
+.bloco-view:last-child {
+    margin-bottom: 0;
+}
+
+.bloco-individual-view {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background-color: transparent;
+}
+
+.bloco-individual-view .stacked-image {
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+}
+
+.bloco-individual-view.spin .stacked-image {
+    transform: translateY(-50%) scaleX(-1);
+}
+
+/* Ordem de empilhamento específica */
+.bloco-view:nth-child(1) {
+    z-index: 3;
+}
+
+.bloco-view:nth-child(2) {
+    z-index: 2;
+}
+
+.bloco-view:nth-child(3) {
+    z-index: 1;
+}
+
+/* Ajuste para imagens vazias */
+.stacked-image[src="#"],
+.stacked-image:not([src]) {
+    display: none;
 }
