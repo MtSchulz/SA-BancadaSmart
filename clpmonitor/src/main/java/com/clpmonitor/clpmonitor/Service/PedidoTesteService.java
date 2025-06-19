@@ -40,78 +40,84 @@ public class PedidoTesteService {
                 totalBlocos++;
             }
         }
+        System.out.println(totalBlocos);
+        if (totalBlocos > 0) {
+            // Criar nova ordem de produção
+            Orders newOrder = new Orders();
+            newOrder.setProductionOrder(ordersRepository.count() + 1);
+            newOrder = ordersRepository.save(newOrder);
+            ByteBuffer bfPedido = ByteBuffer.allocate(60);
 
-        // Criar nova ordem de produção
-        Orders newOrder = new Orders();
-        newOrder.setProductionOrder(ordersRepository.count() + 1);
-        newOrder = ordersRepository.save(newOrder);
+            Storage expedicao = storageRepository.findById(2L)
+                    .orElseThrow(() -> new RuntimeException("Armazém de expedição não encontrado"));
 
-        ByteBuffer bfPedido = ByteBuffer.allocate(60);
+            // Encontrar primeira posição livre na expedição
+            int posicaoExpedicao = findFirstAvailablePosition(expedicao.getId());
+            if (posicaoExpedicao == -1) {
+                throw new RuntimeException("Armazém de expedição está cheio (12 posições)");
+            }
+            System.out.println(posicaoExpedicao);
+            // Processar cada bloco
+            for (int blocoNum = 1; blocoNum <= 3; blocoNum++) {
+                String blockColorKey = "block-color-" + blocoNum;
+                System.out.println("Bloco" + blocoNum);
+                System.out.println(formData.containsKey("block-color-"));
+                if (formData.containsKey(blockColorKey) && !formData.get(blockColorKey).isEmpty()) {
+                    int blockColor = Integer.parseInt(formData.get(blockColorKey));
+                    System.out.println("bloco " + blockColor);
+                    // BUSCA ORIGINAL NO ESTOQUE POR COR (storageId = 1)
+                    List<Block> blocosDisponiveis = blockRepository.findAvailableBlocksByColor(blockColor);
+                    if (blocosDisponiveis.isEmpty()) {
+                        throw new RuntimeException("Não há blocos disponíveis da cor " + blockColor + " no estoque");
+                    }
 
-        Storage expedicao = storageRepository.findById(2L)
-                .orElseThrow(() -> new RuntimeException("Armazém de expedição não encontrado"));
+                    // Pega o primeiro bloco disponível (já ordenado por posição)
+                    Block block = blocosDisponiveis.get(0);
+                    int posicaoOriginalEstoque = block.getPosition(); // Guarda a posição original
 
-        // Encontrar primeira posição livre na expedição
-        int posicaoExpedicao = findFirstAvailablePosition(expedicao.getId());
-        if (posicaoExpedicao == -1) {
-            throw new RuntimeException("Armazém de expedição está cheio (12 posições)");
-        }
+                    // DEBUG: Mostrar bloco selecionado
+                    System.out.println("Bloco selecionado - Cor: " + block.getColor() +
+                            ", Posição Estoque: " + posicaoOriginalEstoque +
+                            ", ID: " + block.getId());
 
-        // Processar cada bloco
-        for (int blocoNum = 1; blocoNum <= 3; blocoNum++) {
-            String blockColorKey = "block-color-" + blocoNum;
+                    // Mover bloco para expedição (storageId = 2)
+                    block.setStorageId(expedicao);
+                    block.setPosition(posicaoExpedicao); // Usa posição sequencial da expedição
+                    block.setProductionOrder(newOrder);
+                    blockRepository.save(block);
 
-            if (formData.containsKey(blockColorKey) && !formData.get(blockColorKey).isEmpty()) {
-                int blockColor = Integer.parseInt(formData.get(blockColorKey));
+                    gravarPedidoNaExpedicaoCLP(newOrder, block, posicaoExpedicao);
 
-                // BUSCA ORIGINAL NO ESTOQUE POR COR (storageId = 1)
-                List<Block> blocosDisponiveis = blockRepository.findAvailableBlocksByColor(blockColor);
-                if (blocosDisponiveis.isEmpty()) {
-                    throw new RuntimeException("Não há blocos disponíveis da cor " + blockColor + " no estoque");
-                }
-
-                // Pega o primeiro bloco disponível (já ordenado por posição)
-                Block block = blocosDisponiveis.get(0);
-                int posicaoOriginalEstoque = block.getPosition(); // Guarda a posição original
-
-                // DEBUG: Mostrar bloco selecionado
-                System.out.println("Bloco selecionado - Cor: " + block.getColor() +
-                        ", Posição Estoque: " + posicaoOriginalEstoque +
-                        ", ID: " + block.getId());
-
-                // Mover bloco para expedição (storageId = 2)
-                block.setStorageId(expedicao);
-                block.setPosition(posicaoExpedicao); // Usa posição sequencial da expedição
-                block.setProductionOrder(newOrder);
-                blockRepository.save(block);
-
-                gravarPedidoNaExpedicaoCLP(newOrder, block, posicaoExpedicao);
-
-                // Escrever dados do bloco (usa a posição ORIGINAL do estoque para o CLP)
-                bfPedido.putShort((short) blockColor);
-                bfPedido.putShort((short) posicaoOriginalEstoque); // POSIÇÃO NO ESTOQUE
-                bfPedido.putShort((short) getValueOrDefault(formData, "l1-color-" + blocoNum, 0));
-                bfPedido.putShort((short) getValueOrDefault(formData, "l2-color-" + blocoNum, 0));
-                bfPedido.putShort((short) getValueOrDefault(formData, "l3-color-" + blocoNum, 0));
-                bfPedido.putShort((short) getValueOrDefault(formData, "l1-pattern-" + blocoNum, 0));
-                bfPedido.putShort((short) getValueOrDefault(formData, "l2-pattern-" + blocoNum, 0));
-                bfPedido.putShort((short) getValueOrDefault(formData, "l3-pattern-" + blocoNum, 0));
-                bfPedido.putShort((short) 1);
-            } else {
-                // Preencher com zeros se bloco não usado
-                for (int i = 0; i < 9; i++) {
-                    bfPedido.putShort((short) 0);
+                    // Escrever dados do bloco (usa a posição ORIGINAL do estoque para o CLP)
+                    bfPedido.putShort((short) blockColor);
+                    bfPedido.putShort((short) posicaoOriginalEstoque); // POSIÇÃO NO ESTOQUE
+                    bfPedido.putShort((short) getValueOrDefault(formData, "l1-color-" + blocoNum, 0));
+                    bfPedido.putShort((short) getValueOrDefault(formData, "l2-color-" + blocoNum, 0));
+                    bfPedido.putShort((short) getValueOrDefault(formData, "l3-color-" + blocoNum, 0));
+                    bfPedido.putShort((short) getValueOrDefault(formData, "l1-pattern-" + blocoNum, 0));
+                    bfPedido.putShort((short) getValueOrDefault(formData, "l2-pattern-" + blocoNum, 0));
+                    bfPedido.putShort((short) getValueOrDefault(formData, "l3-pattern-" + blocoNum, 0));
+                    bfPedido.putShort((short) 1);
+                } else {
+                    System.out.println("else");
+                    // Preencher com zeros se bloco não usado
+                    for (int i = 0; i < 9; i++) {
+                        bfPedido.putShort((short) 0);
+                    }
                 }
             }
+            // Número do pedido e informações adicionais
+            bfPedido.putShort(newOrder.getProductionOrder().shortValue());
+            bfPedido.putShort((short) totalBlocos);
+            bfPedido.putShort((short) posicaoExpedicao);
+
+            // Enviar para o CLP
+            sendToPlc(bfPedido, formData, newOrder.getProductionOrder());
+
+        } else {
+            System.out.println("Sem blocos");
         }
 
-        // Número do pedido e informações adicionais
-        bfPedido.putShort(newOrder.getProductionOrder().shortValue());
-        bfPedido.putShort((short) totalBlocos);
-        bfPedido.putShort((short) posicaoExpedicao);
-
-        // Enviar para o CLP
-        sendToPlc(bfPedido, formData, newOrder.getProductionOrder());
     }
 
     private int findFirstAvailablePosition(Long storageId) {

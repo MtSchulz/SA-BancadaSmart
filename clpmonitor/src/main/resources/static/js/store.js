@@ -45,9 +45,9 @@ function renderBlocos() {
                 <label  for="block-color-${nBloco}">Cor do Bloco:
                     <select name="block-color-${nBloco}" id="block-color-${nBloco}" onchange="changePedidoView(${nBloco})">
                         <option value="">Nenhum</option>
-                        <option value="preto">Preto</option>
-                        <option value="vermelho">Vermelho</option>
-                        <option value="azul">Azul</option>
+                        <option value="1">Preto</option>
+                        <option value="2">Vermelho</option>
+                        <option value="3">Azul</option>
                     </select>
                 </label>
             </div>
@@ -265,49 +265,57 @@ function spin(id) {
  */
 // Envia pedido para a base de dados
 function enviarPedido() {
-  const tipo = document.getElementById("tipoPedido").value;
-  const pedido = {
-    tipo: tipo,
-    blocos: []
-  };
+  const formData = new FormData();
+  let hasData = false;
 
-  // Captura dados de todos os blocos visíveis
-  const blocosCount = document.querySelectorAll('[id^="bloco-container-"]').length;
+  // Iterar sobre todas as seções de bloco
+  $('div[id^="bloco-container-"]').each(function () {
+    const sectionId = this.id.split('-')[2]; // Extrai o número do bloco (1, 2, 3...)
+    hasData = true;
 
-  for (let i = 1; i <= blocosCount; i++) {
-    const corBloco = document.getElementById(`block-color-${i}`).value;
-    const laminas = [];
+    // Adicionar todos os campos do formulário mantendo a numeração original
+    const blockColor = $(`#block-color-${sectionId}`).val();
+    const l1Color = $(`#l1-color-${sectionId}`).val();
+    const l2Color = $(`#l2-color-${sectionId}`).val();
+    const l3Color = $(`#l3-color-${sectionId}`).val();
+    const l1Pattern = $(`#l1-pattern-${sectionId}`).val();
+    const l2Pattern = $(`#l2-pattern-${sectionId}`).val();
+    const l3Pattern = $(`#l3-pattern-${sectionId}`).val();
 
-    for (let j = 1; j <= 3; j++) {
-      laminas.push({
-        cor: document.getElementById(`l${j}-color-${i}`).value,
-        padrao: document.getElementById(`l${j}-pattern-${i}`).value
-      });
-    }
+    // Adiciona os dados ao FormData com prefixo para cada bloco
+    formData.append(`block-color-${sectionId}`, blockColor);
+    formData.append(`l1-color-${sectionId}`, l1Color);
+    formData.append(`l2-color-${sectionId}`, l2Color);
+    formData.append(`l3-color-${sectionId}`, l3Color);
+    if (l1Pattern) formData.append(`l1-pattern-${sectionId}`, l1Pattern);
+    if (l2Pattern) formData.append(`l2-pattern-${sectionId}`, l2Pattern);
+    if (l3Pattern) formData.append(`l3-pattern-${sectionId}`, l3Pattern);
+  });
 
-    pedido.blocos.push({
-      cor: corBloco,
-      laminas: laminas
-    });
+  if (!hasData) {
+    alert("Nenhum bloco configurado para envio!");
+    return;
   }
 
-  fetch("/store/orders", {
+  // Adiciona o número total de blocos (baseado no tipo de pedido selecionado)
+  const tipoPedido = $('#tipoPedido').val();
+  let totalBlocks = 1;
+  if (tipoPedido === 'duplo') totalBlocks = 2;
+  if (tipoPedido === 'triplo') totalBlocks = 3;
+  formData.append('total-blocks', totalBlocks);
+
+  // Aqui você adicionaria o código para enviar o formData para o servidor
+  console.log('Dados do pedido:', Object.fromEntries(formData));
+
+  // Enviar para o servidor
+  fetch("/pedidoTeste", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify([pedido])
-  })
-    .then(res => {
-      if (res.ok) {
-        alert("Pedido enviado com sucesso!");
-        listarPedidos();
-      } else {
-        alert("Erro ao enviar pedido.");
-      }
-    })
-    .catch(error => {
-      console.error("Erro:", error);
-      alert("Falha na conexão com o servidor");
-    });
+    body: formData,
+  }).then((response) => {
+    if (response.redirected) {
+      window.location.href = response.url;
+    }
+  });
 }
 
 window.onclick = function (event) {
@@ -514,7 +522,7 @@ function atualizarVisualizacao() {
   for (let i = 1; i <= blocosCount; i++) {
     const blocoDiv = document.createElement('div');
     blocoDiv.className = `bloco-view bloco-${i}`;
-    
+
     // Cria a visualização do bloco individual
     const viewDiv = document.createElement('div');
     viewDiv.className = 'bloco-individual-view';
@@ -534,12 +542,12 @@ function atualizarVisualizacao() {
 
     // Adiciona componentes na ordem correta para empilhamento
     addImage(`bloco-${i}`, 1); // Bloco base
-    
+
     // Lâminas
     addImage(`lamina${i}-3`, 10); // Lâmina esquerda (ou direita se girado)
     addImage(`lamina${i}-1`, 20); // Lâmina direita (ou esquerda se girado)
     addImage(`lamina${i}-2`, 30); // Lâmina central
-    
+
     // Padrões
     for (let j = 1; j <= 3; j++) {
       addImage(`padrao${i}-${j}`, 40 + j);
