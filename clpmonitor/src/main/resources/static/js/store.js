@@ -134,16 +134,18 @@ function renderBlocos() {
  */
 function changePedidoView(id, lamina) {
   const blockColor = document.getElementById("block-color-" + id).value;
+  const blocoImg = document.getElementById("bloco-" + id);
 
   if (blockColor !== "") {
-    const idCor = (blockColor === "preto" ? 1 : blockColor === "vermelho" ? 2 : 3);
-    document.getElementById("bloco-" + id).src = "assets/bloco/rBlocoCor" + idCor + ".png";
-
+    const timestamp = new Date().getTime();
+    blocoImg.src = `assets/bloco/rBlocoCor${blockColor}.png?t=${timestamp}`;
+    
     // Habilita os selects de cor
     ["l1-color-", "l2-color-", "l3-color-"].forEach(prefix => {
       document.getElementById(prefix + id).disabled = false;
     });
 
+    // Restante do código permanece igual
     const l1Color = document.getElementById("l1-color-" + id).value;
     const l2Color = document.getElementById("l2-color-" + id).value;
     const l3Color = document.getElementById("l3-color-" + id).value;
@@ -155,34 +157,24 @@ function changePedidoView(id, lamina) {
     const view = document.getElementById("pedido-view" + id);
     const isSpun = view.dataset.isSpun === "true";
 
-    // Atualiza as lâminas e padrões dependendo do giro
+    // Atualiza as lâminas e padrões
     if (isSpun) {
-      document.getElementById("lamina" + id + "-3").src = l1Color ? "assets/laminas/lamina3-" + l1Color + ".png" : "#";
-      document.getElementById("lamina" + id + "-1").src = l3Color ? "assets/laminas/lamina1-" + l3Color + ".png" : "#";
-
-      const padrao3 = document.getElementById("padrao" + id + "-3");
-      const padrao1 = document.getElementById("padrao" + id + "-1");
-
-      padrao3.src = l3Pattern ? "assets/padroes/padrao" + l3Pattern + "-1.png" : "#";
-      padrao3.hidden = false;
-      padrao1.src = l1Pattern ? "assets/padroes/padrao" + l1Pattern + "-1.png" : "#";
-      padrao1.hidden = true;
+      updateImage(`lamina${id}-3`, l1Color ? `assets/laminas/lamina3-${l1Color}.png?t=${timestamp}` : "#");
+      updateImage(`lamina${id}-1`, l3Color ? `assets/laminas/lamina1-${l3Color}.png?t=${timestamp}` : "#");
+      
+      updatePattern(`padrao${id}-3`, l3Pattern, timestamp);
+      document.getElementById(`padrao${id}-1`).hidden = true;
     } else {
-      document.getElementById("lamina" + id + "-1").src = l1Color ? "assets/laminas/lamina1-" + l1Color + ".png" : "#";
-      document.getElementById("lamina" + id + "-3").src = l3Color ? "assets/laminas/lamina3-" + l3Color + ".png" : "#";
-
-      const padrao1 = document.getElementById("padrao" + id + "-1");
-      const padrao3 = document.getElementById("padrao" + id + "-3");
-
-      padrao1.src = l1Pattern ? "assets/padroes/padrao" + l1Pattern + "-1.png" : "#";
-      padrao1.hidden = false;
-      padrao3.src = l3Pattern ? "assets/padroes/padrao" + l3Pattern + "-1.png" : "#";
-      padrao3.hidden = true;
+      updateImage(`lamina${id}-1`, l1Color ? `assets/laminas/lamina1-${l1Color}.png?t=${timestamp}` : "#");
+      updateImage(`lamina${id}-3`, l3Color ? `assets/laminas/lamina3-${l3Color}.png?t=${timestamp}` : "#");
+      
+      updatePattern(`padrao${id}-1`, l1Pattern, timestamp);
+      document.getElementById(`padrao${id}-3`).hidden = true;
     }
 
-    // Atualiza lâmina/padrão do meio
-    document.getElementById("lamina" + id + "-2").src = l2Color ? "assets/laminas/lamina2-" + l2Color + ".png" : "#";
-    document.getElementById("padrao" + id + "-2").src = l2Pattern ? "assets/padroes/padrao" + l2Pattern + "-2.png" : "#";
+    // Lâmina/padrão do meio
+    updateImage(`lamina${id}-2`, l2Color ? `assets/laminas/lamina2-${l2Color}.png?t=${timestamp}` : "#");
+    updatePattern(`padrao${id}-2`, l2Pattern, timestamp);
 
     // Habilita os padrões caso uma cor esteja selecionada
     ["l1-pattern-", "l2-pattern-", "l3-pattern-"].forEach((prefix, index) => {
@@ -191,19 +183,34 @@ function changePedidoView(id, lamina) {
     });
 
   } else {
-    // Desabilita todos os campos e limpa imagens
+    // Código para quando não há cor selecionada
     ["l1-color-", "l2-color-", "l3-color-", "l1-pattern-", "l2-pattern-", "l3-pattern-"].forEach(prefix => {
       document.getElementById(prefix + id).disabled = true;
     });
 
-    document.getElementById("send-" + id).disabled = true;
     document.getElementById("bloco-" + id).src = "assets/bloco/rBlocoCor0.png";
-
     ["lamina", "padrao"].forEach(prefix => {
       for (let i = 1; i <= 3; i++) {
-        document.getElementById(prefix + id + "-" + i).src = "#";
+        document.getElementById(`${prefix}${id}-${i}`).src = "#";
       }
     });
+  }
+}
+
+// Funções auxiliares
+function updateImage(elementId, src) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.src = src;
+    element.hidden = src === "#";
+  }
+}
+
+function updatePattern(elementId, pattern, timestamp) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.src = pattern ? `assets/padroes/padrao${pattern}-1.png?t=${timestamp}` : "#";
+    element.hidden = !pattern;
   }
 }
 
