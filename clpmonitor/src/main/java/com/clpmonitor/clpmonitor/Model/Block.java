@@ -22,7 +22,7 @@ public class Block {
     private int color;
 
     @ManyToOne
-    @JoinColumn(name = "StorageId")
+    @JoinColumn(name = "storage_id")
     private Storage storageId;
 
     @ManyToOne

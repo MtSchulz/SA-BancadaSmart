@@ -25,8 +25,8 @@ public interface BlockRepository extends JpaRepository<Block, Long> {
     @Query("SELECT b.position FROM Block b WHERE b.storageId.id = :storageId")
     List<Integer> findPositionsByStorageId(Long storageId);
 
-    Block findByStorageIdAndPosition(Long storageId, int position);
-
+    Block findByStorageId_IdAndPosition(Long storageId, int position);
+        
     void deleteByStorageId_IdAndPosition(Long storageId, int position);
 
     @Query("SELECT b FROM Block b WHERE b.storageId.id = :storageId AND b.color = :color ORDER BY b.position")

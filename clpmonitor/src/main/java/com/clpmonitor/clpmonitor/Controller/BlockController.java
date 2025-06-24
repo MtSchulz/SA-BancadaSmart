@@ -130,7 +130,7 @@ public ResponseEntity<Map<String, Object>> atualizarEstoque(
                 .orElseThrow(() -> new RuntimeException("Estoque não encontrado"));
 
         // Correção aqui - findFirstBy... ou usar Optional
-        Optional<Block> blocoOpt = Optional.ofNullable(blockRepository.findByStorageIdAndPosition(estoque.getId(), posicao));
+        Optional<Block> blocoOpt = Optional.ofNullable(blockRepository.findByStorageId_IdAndPosition(estoque.getId(), posicao));
         Block bloco = blocoOpt.orElse(new Block());
         
         bloco.setPosition(posicao);
@@ -199,7 +199,7 @@ public ResponseEntity<Map<String, Object>> atualizarEstoque(
                     .orElseThrow(() -> new RuntimeException("Expedição não encontrada"));
     
             // Correção aqui
-            Optional<Block> blocoOpt = Optional.ofNullable(blockRepository.findByStorageIdAndPosition(expedicao.getId(), posicao));
+            Optional<Block> blocoOpt = Optional.ofNullable(blockRepository.findByStorageId_IdAndPosition(expedicao.getId(), posicao));
             Block bloco = blocoOpt.orElse(new Block());
             
             Orders ordem = new Orders();
