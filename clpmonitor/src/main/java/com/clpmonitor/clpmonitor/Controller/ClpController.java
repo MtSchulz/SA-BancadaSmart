@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.clpmonitor.clpmonitor.Model.TagWriteRequest;
-import com.clpmonitor.clpmonitor.Service.ClpSimulatorService;
 import com.clpmonitor.clpmonitor.Service.PedidoTesteService;
+import com.clpmonitor.clpmonitor.Service.SmartService;
 
 @Controller
 public class ClpController {
@@ -35,7 +35,7 @@ public class ClpController {
      */
 
     @Autowired
-    private ClpSimulatorService simulatorService;
+    private SmartService smartService;
 
     @Autowired
     private PedidoTesteService pedidoTesteService;
@@ -60,7 +60,7 @@ public class ClpController {
 
     @GetMapping(value = "/clp-data-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamClpData() {
-        return simulatorService.subscribe();
+        return smartService.subscribe();
     }
 
     // Método auxiliar para enviar atualizações
@@ -97,7 +97,37 @@ public class ClpController {
 
     @PostMapping("/update-expedition")
     public String updateExpedition() {
-        simulatorService.updateExpedition();
+        try {
+            // 1. Verifica se há um pedido em curso
+            if (SmartService.pedidoEmCurso) {
+                throw new IllegalStateException("Já existe um pedido em andamento");
+            }
+    
+            // 2. Busca a primeira posição livre na expedição
+            int posicaoLivre = smartService.buscarPrimeiraPosicaoLivreExp();
+            if (posicaoLivre == -1) {
+                throw new IllegalStateException("Não há posições disponíveis na expedição");
+            }
+    
+            // 3. Configura a posição solicitada
+            SmartService.posicaoExpedicaoSolicitada = posicaoLivre;
+            
+            // 4. Inicia a execução do pedido (assumindo IP padrão do CLP de expedição)
+            smartService.iniciarExecucaoPedido("192.168.0.40"); 
+            // 5. Atualiza flags de status
+            SmartService.pedidoEmCurso = true;
+            SmartService.statusProducao = 0;
+            SmartService.statusExpedicao = 0;
+            
+            // 6. Log de sucesso
+            System.out.println("Pedido iniciado com sucesso. Posição na expedição: " + posicaoLivre);
+            
+        } catch (Exception e) {
+            // Log de erro e tratamento adequado
+            System.err.println("Erro ao atualizar expedição: " + e.getMessage());
+            return "redirect:/error-page"; // Você pode criar uma página de erro específica
+        }
+        
         return "redirect:/fragments-formulario";
     }
 
