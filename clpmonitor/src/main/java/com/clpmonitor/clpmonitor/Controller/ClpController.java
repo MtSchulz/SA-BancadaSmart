@@ -94,13 +94,13 @@ public class ClpController {
         model.addAttribute("tag", new TagWriteRequest());
         return "fragments/formulario :: clp-write-fragment";
     }
-/*
+
     @PostMapping("/update-expedition")
-    public String clpExpedicao() {
-        smartService.clpExpedicao("10.74.241.40");
+    public String sendExpeditionUpdate() {
+        smartService.sendExpeditionUpdate();
         return "redirect:/fragments-formulario";
     }
- */
+
     @GetMapping("/store")
     public String exibirStore() {
         return "store";
