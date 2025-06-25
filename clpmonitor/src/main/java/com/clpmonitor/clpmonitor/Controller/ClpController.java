@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.clpmonitor.clpmonitor.Model.TagWriteRequest;
-import com.clpmonitor.clpmonitor.Service.ClpSimulatorService;
 import com.clpmonitor.clpmonitor.Service.PedidoTesteService;
+import com.clpmonitor.clpmonitor.Service.SmartService;
 
 @Controller
 public class ClpController {
@@ -35,7 +35,7 @@ public class ClpController {
      */
 
     @Autowired
-    private ClpSimulatorService simulatorService;
+    private SmartService smartService;
 
     @Autowired
     private PedidoTesteService pedidoTesteService;
@@ -60,7 +60,7 @@ public class ClpController {
 
     @GetMapping(value = "/clp-data-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamClpData() {
-        return simulatorService.subscribe();
+        return smartService.subscribe();
     }
 
     // Método auxiliar para enviar atualizações
@@ -94,13 +94,13 @@ public class ClpController {
         model.addAttribute("tag", new TagWriteRequest());
         return "fragments/formulario :: clp-write-fragment";
     }
-
+/*
     @PostMapping("/update-expedition")
-    public String updateExpedition() {
-        simulatorService.updateExpedition();
+    public String clpExpedicao() {
+        smartService.clpExpedicao("10.74.241.40");
         return "redirect:/fragments-formulario";
     }
-
+ */
     @GetMapping("/store")
     public String exibirStore() {
         return "store";
