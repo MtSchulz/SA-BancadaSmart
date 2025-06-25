@@ -3,6 +3,9 @@ package com.clpmonitor.clpmonitor.Service;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.clpmonitor.clpmonitor.Model.Block;
+import com.clpmonitor.clpmonitor.Model.ClpData;
 import com.clpmonitor.clpmonitor.PLC.PlcConnector;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
 import com.clpmonitor.clpmonitor.Repository.StorageRepository;
@@ -229,16 +233,11 @@ public class SmartService {
     boolean xServoDesligadoEixoVerticalExp = false;
     boolean xCondicaoIniciarExp = false;
 
+    private byte[] indexColorExp = new byte[12];
+    private PlcConnector plcConnectorExpedicao;
+
     private Map<String, List<String>> eventosCLP = new ConcurrentHashMap<>();
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
-
-    public SseEmitter subscribe() {
-        SseEmitter emitter = new SseEmitter(30_000L); // Timeout de 30 segundos
-        emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        return emitter;
-    }
 
     public class PlcConnectionManager {
 
@@ -1201,6 +1200,53 @@ public class SmartService {
 
     }
 
+    public void sendExpeditionUpdate() {
+        int values[] = new int[12];
+
+        if (plcConnectorExpedicao != null) {
+            try {
+                plcConnectorExpedicao.disconnect();
+            } catch (Exception e) {
+                System.err.println("Erro ao desconectar plcConnectorExpedicao: " + e.getMessage());
+            }
+        }
+        plcConnectorExpedicao = new PlcConnector("10.74.241.40", 102);
+        List<Integer> byteArray = new ArrayList<>();
+
+        try {
+            plcConnectorExpedicao.connect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
+            int j = 0;
+            for (int i = 6; i <= 28; i += 2) {
+                values[j] = plcConnectorExpedicao.readInt(9, i);
+                j++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Falha!");
+        }
+
+        for (int i = 0; i < 12; i++) {
+            byteArray.add(values[i]);
+            indexColorExp[i] = (byte) values[i];
+        }
+
+        ClpData expeditionData = new ClpData(5, byteArray);
+        sendToEmitters("expedition-data", expeditionData);
+    }
+
+    public SseEmitter subscribe() {
+        SseEmitter emitter = new SseEmitter(30_000L); // Timeout de 30 segundos
+        emitters.add(emitter);
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onTimeout(() -> emitters.remove(emitter));
+        return emitter;
+    }
+
     public void salvarEventosEmArquivo() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("eventos_clp_estoque.txt", true))) {
             for (Map.Entry<String, List<String>> entry : eventosCLP.entrySet()) {
@@ -1253,6 +1299,16 @@ public class SmartService {
     public void setReadOnly(boolean readOnly) {
         this.readOnly = readOnly;
         System.out.println("readOnly: " + readOnly);
+    }
+
+    private void sendToEmitters(String eventName, ClpData clpData) {
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(clpData));
+            } catch (IOException e) {
+                emitters.remove(emitter);
+            }
+        }
     }
 
 }

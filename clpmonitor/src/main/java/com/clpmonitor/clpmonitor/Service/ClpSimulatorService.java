@@ -107,15 +107,15 @@ public class ClpSimulatorService {
             }
             plcConnectorEstoque = new PlcConnector("10.74.241.10", 102);
             plcConnectorEstoque.connect();
-            
+
             indexColorEst = plcConnectorEstoque.readBlock(9, 68, 28);
             System.out.println("Dados brutos do estoque: " + Arrays.toString(indexColorEst));
-            
+
             List<Integer> byteArray = new ArrayList<>();
             for (byte b : indexColorEst) {
                 byteArray.add(b & 0xFF);
             }
-            
+
             ClpData clp1 = new ClpData(1, byteArray);
             sendToEmitters("clp1-data", clp1);
         } catch (Exception e) {
@@ -179,4 +179,5 @@ public class ClpSimulatorService {
             }
         }
     }
-}*/
+}
+*/
