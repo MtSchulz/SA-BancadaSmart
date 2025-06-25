@@ -94,43 +94,13 @@ public class ClpController {
         model.addAttribute("tag", new TagWriteRequest());
         return "fragments/formulario :: clp-write-fragment";
     }
-
+/*
     @PostMapping("/update-expedition")
-    public String updateExpedition() {
-        try {
-            // 1. Verifica se há um pedido em curso
-            if (SmartService.pedidoEmCurso) {
-                throw new IllegalStateException("Já existe um pedido em andamento");
-            }
-    
-            // 2. Busca a primeira posição livre na expedição
-            int posicaoLivre = smartService.buscarPrimeiraPosicaoLivreExp();
-            if (posicaoLivre == -1) {
-                throw new IllegalStateException("Não há posições disponíveis na expedição");
-            }
-    
-            // 3. Configura a posição solicitada
-            SmartService.posicaoExpedicaoSolicitada = posicaoLivre;
-            
-            // 4. Inicia a execução do pedido (assumindo IP padrão do CLP de expedição)
-            smartService.iniciarExecucaoPedido("192.168.0.40"); 
-            // 5. Atualiza flags de status
-            SmartService.pedidoEmCurso = true;
-            SmartService.statusProducao = 0;
-            SmartService.statusExpedicao = 0;
-            
-            // 6. Log de sucesso
-            System.out.println("Pedido iniciado com sucesso. Posição na expedição: " + posicaoLivre);
-            
-        } catch (Exception e) {
-            // Log de erro e tratamento adequado
-            System.err.println("Erro ao atualizar expedição: " + e.getMessage());
-            return "redirect:/error-page"; // Você pode criar uma página de erro específica
-        }
-        
+    public String clpExpedicao() {
+        smartService.clpExpedicao("10.74.241.40");
         return "redirect:/fragments-formulario";
     }
-
+ */
     @GetMapping("/store")
     public String exibirStore() {
         return "store";
