@@ -1,10 +1,9 @@
-/* smartPing.css - Versão final ajustada */
 :root {
-    --primary-color: #3498db;
-    --secondary-color: #2980b9;
-    --accent-color: #2c3e50;
-    --dark-color: #34495e;
-    --light-color: #ecf0f1;
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4895ef;
+    --dark-color: #1b263b;
+    --light-color: #f8f9fa;
     --success-color: #2ecc71;
     --danger-color: #e74c3c;
     --warning-color: #f39c12;
@@ -22,12 +21,7 @@ body {
     color: #333;
 }
 
-.container {
-    display: flex;
-    width: 100%;
-}
-
-/* Barra Lateral */
+/* Sidebar */
 .sidebar {
     width: 250px;
     background-color: #202020;
@@ -84,28 +78,23 @@ body {
 }
 
 /* Main Content */
-.main-content {
+.main-container {
     margin-left: 250px;
     flex: 1;
     padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    background-color: #333;
 }
 
-/* Hero Section */
-.hero-header {
-    text-align: center;
-    margin-bottom: 2rem;
-    width: 100%;
-    max-width: 1200px;
-    background-color: white;
-    padding: 2rem;
-    border-radius: var(--border-radius);
+.container {
+    background-color: #333;
     box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-h1 {
+header h1 {
     font-size: 2.5rem;
     text-align: center;
     font-weight: 700;
@@ -117,55 +106,30 @@ h1 {
     color: transparent;
 }
 
-.hero-image {
-    width: 80%;
-    max-height: 250px;
-    object-fit: contain;
-    border-radius: var(--border-radius);
-    margin: 1rem auto;
-    display: block;
-    border: 1px solid #eee;
-}
-
 /* Status Container */
 .status-container {
-    background-color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
     padding: 1.5rem;
+    background-color: white;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
-    margin-bottom: 2rem;
-    width: 100%;
-    max-width: 800px;
-}
-
-.status-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.status-list li {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #eee;
-    color: var(--dark-color);
-}
-
-.status-list li:last-child {
-    border-bottom: none;
 }
 
 .status-indicator {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     font-size: 1rem;
+    margin-bottom: 1rem;
 }
 
 .status-circle {
-    width: 12px;
-    height: 12px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
     background-color: var(--danger-color);
 }
@@ -178,37 +142,45 @@ h1 {
     background-color: var(--warning-color);
 }
 
+.hero-image {
+    width: 100%;
+    max-width: 600px;
+    max-height: 250px;
+    object-fit: contain;
+    border-radius: var(--border-radius);
+    margin: 1rem auto;
+    display: block;
+    border: 1px solid #eee;
+}
+
 /* Control Panel */
 .control-panel {
     background-color: white;
-    box-shadow: var(--box-shadow);
+    padding: 1.5rem;
     border-radius: var(--border-radius);
-    padding: 2rem;
-    width: 100%;
-    max-width: 800px;
+    box-shadow: var(--box-shadow);
 }
 
-.control-title {
+.control-panel h3 {
     text-align: center;
     color: var(--dark-color);
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
 }
 
-.server-config {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 1rem;
-    align-items: center;
+.form-group {
     margin-bottom: 1.5rem;
 }
 
-.server-config label {
+.form-group label {
+    display: block;
     font-weight: 500;
+    margin-bottom: 0.5rem;
     color: var(--dark-color);
 }
 
-.server-config input {
+.form-group input {
+    width: 100%;
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: var(--border-radius);
@@ -216,7 +188,7 @@ h1 {
     transition: var(--transition);
 }
 
-.server-config input:focus {
+.form-group input:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
@@ -227,10 +199,10 @@ h1 {
     display: flex;
     justify-content: center;
     gap: 1rem;
-    margin-top: 1.5rem;
+    margin: 1.5rem 0;
 }
 
-button {
+.btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -244,45 +216,97 @@ button {
     gap: 8px;
 }
 
-button:hover {
+.btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.btn-connect {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.btn-connect:hover {
-    background-color: #27ae60;
-}
-
-.btn-pause {
-    background-color: var(--warning-color);
-    color: white;
-}
-
-.btn-pause:hover {
-    background-color: #e67e22;
-}
-
-.btn-store {
+.btn-primary {
     background-color: var(--primary-color);
     color: white;
-    margin-top: 1.5rem;
-    width: 100%;
-    padding: 1rem;
-    font-size: 1.1rem;
 }
 
-.btn-store:hover {
+.btn-primary:hover {
     background-color: var(--secondary-color);
 }
 
-.hidden {
-    display: none;
+.btn-secondary {
+    background-color: var(--accent-color);
+    color: white;
 }
+
+.btn-secondary:hover {
+    background-color: var(--dark-color);
+}
+
+/* CLP Connection Status */
+.clp-status-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.clp-status {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.clp-status h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--dark-color);
+}
+
+.clp-status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--danger-color);
+    margin-right: 0.5rem;
+}
+
+.clp-status-indicator.connected {
+    background-color: var(--success-color);
+}
+
+.clp-status-text {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+/* Blocos horizontais */ 
+.horizontal-blocks {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.clp-block {
+    background-color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    flex: 1 1 220px;
+    max-width: 250px;
+    text-align: center;
+}
+
+.clp-block input {
+    width: 100%;
+    padding: 0.6rem;
+    margin: 0.5rem 0;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+}
+
 
 /* Responsividade */
 @media (max-width: 768px) {
@@ -292,7 +316,7 @@ button:hover {
         position: relative;
     }
     
-    .main-content {
+    .main-container {
         margin-left: 0;
         padding: 1rem;
     }
@@ -300,23 +324,13 @@ button:hover {
     .hero-image {
         width: 95%;
         max-height: 200px;
-        border: none;
-    }
-    
-    .server-config {
-        grid-template-columns: 1fr;
     }
     
     .button-group {
         flex-direction: column;
     }
     
-    button {
+    .btn {
         width: 100%;
     }
-}
-
-/* Ícones */
-.material-symbols-rounded {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

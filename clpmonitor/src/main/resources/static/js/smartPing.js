@@ -1,7 +1,19 @@
+// Variáveis de estado
+let conectado = false;
+let pausado = false;
 
-// Função conectarBancada mantendo todas as chamadas originais
+// Função para capitalizar strings
+function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Função principal de conexão
 function conectarBancada() {
     const btn = document.getElementById("btnConectar");
+    const statusBancada = document.getElementById("statusBancada");
+    const statusText = document.getElementById("statusText");
+    const storeButton = document.getElementById("storeButtonContainer");
+    
     const ips = {
         estoque: document.getElementById("hostIpEstoque").value,
         processo: document.getElementById("hostIpProcesso").value,
@@ -10,130 +22,79 @@ function conectarBancada() {
     };
 
     if (!conectado) {
+        // Simulação de conexão - substituir pela chamada real ao backend
         fetch("/smart/ping", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(ips)
         })
-            .then(res => res.json())
-            .then(status => {
-                Object.entries(status).forEach(([nome, ok]) => {
-                    const inputId = `hostIp${capitalize(nome)}`;
-                    const input = document.getElementById(inputId);
-                    const cor = ok ? "rgb(0,255,0)" : "rgb(255,0,0)";
-                    input.style.color = cor;
-                    sessionStorage.setItem(`corFonte_${inputId}`, cor);
-                });
-
-                // Inicia as leituras no backend
-                return fetch("/start-leituras", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(ips)
-                });
-            })
-            .then(() => {
-                // Substitui iniciarTodasSSE() por iniciarSSEClps()
-                iniciarSSEClps();
-                pausado = 0;
-                if (pausado === 0) {
-                    const inputs = document.querySelectorAll('.divBancadaStatus input');
-                    inputs.forEach(input => {
-                        input.style.color = "rgb(0,255,0)"; // substitua por qualquer cor
-                    });
-
+        .then(res => res.json())
+        .then(status => {
+            // Atualiza status de cada CLP
+            Object.entries(status).forEach(([nome, ok]) => {
+                const statusElement = document.getElementById(`status${capitalize(nome)}`);
+                const statusTextElement = document.getElementById(`statusText${capitalize(nome)}`);
+                
+                if (ok) {
+                    statusElement.classList.add("connected");
+                    statusElement.classList.remove("paused");
+                    statusTextElement.textContent = "Conectado";
+                } else {
+                    statusElement.classList.remove("connected", "paused");
+                    statusTextElement.textContent = "Desconectado";
                 }
-            })
-            .catch(error => {
-                console.error("Erro ao conectar:", error);
             });
 
-        btn.textContent = "Desconectar";
-        conectado = true;
-        //enviarParaClp();
-        sessionStorage.setItem("bancadaConectada", "true");
+            // Inicia as leituras no backend
+            return fetch("/start-leituras", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(ips)
+            });
+        })
+        .then(() => {
+            // Atualiza UI para estado conectado
+            statusBancada.classList.add("connected");
+            statusBancada.classList.remove("paused");
+            statusText.textContent = "Status: Conectado";
+            btn.textContent = "Desconectar";
+            document.getElementById("btnPausar").disabled = false;
+            conectado = true;
+            pausado = false;
+            
+            // Mostra o botão para a tela store
+            storeButton.style.display = "block";
+        })
+        .catch(error => {
+            console.error("Erro ao conectar:", error);
+        });
     } else {
+        // Desconectar
         // Para as conexões SSE dos CLPs
         pararSSEClps();
 
-        if (pausado === 0) {
-            pausado = 1;
-        }
-        if (pausado === 1) {
-            const inputs = document.querySelectorAll('.divBancadaStatus input');
-            inputs.forEach(input => {
-                input.style.color = "rgb(255,255,0)"; // substitua por qualquer cor
-            });
-        }
-        // Envia comando para parar leituras no backend
-        fetch("/stop-leituras", {
-            method: "POST"
-        });
-
-        // Limpa as leituras
-        clps.forEach(clp => {
-            document.getElementById(`${clp}-dados`).textContent = "--";
-        });
-        ["Estoque", "Processo", "Montagem", "Expedicao"].forEach(nome => {
-            document.getElementById(`leitura${nome}`).value = "--";
-        });
-
-        btn.textContent = "Conectar";
-        conectado = false;
-        sessionStorage.removeItem("bancadaConectada");
-    }
-}
-
-
-// Conexões da tela html
-
-let conectado = false;
-let pausado = false;
-
-function conectarBancada() {
-    const btnConectar = document.getElementById("btnConectar");
-    const btnPausar = document.getElementById("btnPausar");
-    const statusBancada = document.getElementById("statusBancada");
-    const statusText = document.getElementById("statusText");
-    const storeButton = document.getElementById("storeButtonContainer");
-
-    if (!conectado) {
-        // Simulação de conexão - substituir pela chamada real ao backend
-        const serverIp = document.getElementById("serverIp").value;
-        if (!serverIp) {
-            alert("Por favor, insira o endereço IP do servidor");
-            return;
-        }
-
-        // Aqui você faria a chamada fetch para conectar
-        console.log("Conectando ao servidor:", serverIp);
-
-        // Atualiza UI para estado conectado
-        statusBancada.style.backgroundColor = "rgb(0, 255, 0)";
-        statusText.textContent = "Status: Conectado";
-        btnConectar.textContent = "Desconectar";
-        btnPausar.disabled = false;
-        conectado = true;
-
-        // Mostra o botão para a tela store
-        storeButton.style.display = "block";
-    } else {
-        // Desconectar
-        console.log("Desconectando do servidor");
-
         // Atualiza UI para estado desconectado
-        statusBancada.style.backgroundColor = "rgb(255, 0, 0)";
+        statusBancada.classList.remove("connected", "paused");
         statusText.textContent = "Status: Desconectado";
-        btnConectar.textContent = "Conectar";
-        btnPausar.disabled = true;
-        pausado = false;
+        btn.textContent = "Conectar";
+        document.getElementById("btnPausar").disabled = true;
         conectado = false;
+        pausado = false;
+        
+        // Atualiza status de todos os CLPs para desconectado
+        ["Estoque", "Processo", "Montagem", "Expedicao"].forEach(nome => {
+            const statusElement = document.getElementById(`status${nome}`);
+            const statusTextElement = document.getElementById(`statusText${nome}`);
+            statusElement.classList.remove("connected", "paused");
+            statusTextElement.textContent = "Desconectado";
+        });
 
         // Esconde o botão para a tela store
         storeButton.style.display = "none";
     }
 }
 
+// Função para pausar conexão
 function pausarConexao() {
     const btnPausar = document.getElementById("btnPausar");
     const statusBancada = document.getElementById("statusBancada");
@@ -141,22 +102,49 @@ function pausarConexao() {
 
     if (!pausado) {
         // Pausar conexão
-        console.log("Pausando conexão");
-        statusBancada.style.backgroundColor = "rgb(255, 255, 0)";
+        statusBancada.classList.remove("connected");
+        statusBancada.classList.add("paused");
         statusText.textContent = "Status: Pausado";
         btnPausar.textContent = "Retomar";
         pausado = true;
+        
+        // Atualiza status de todos os CLPs para pausado
+        ["Estoque", "Processo", "Montagem", "Expedicao"].forEach(nome => {
+            const statusElement = document.getElementById(`status${nome}`);
+            const statusTextElement = document.getElementById(`statusText${nome}`);
+            statusElement.classList.remove("connected");
+            statusElement.classList.add("paused");
+            statusTextElement.textContent = "Pausado";
+        });
     } else {
         // Retomar conexão
-        console.log("Retomando conexão");
-        statusBancada.style.backgroundColor = "rgb(0, 255, 0)";
+        statusBancada.classList.add("connected");
+        statusBancada.classList.remove("paused");
         statusText.textContent = "Status: Conectado";
         btnPausar.textContent = "Pausar";
         pausado = false;
+        
+        // Atualiza status de todos os CLPs para conectado
+        ["Estoque", "Processo", "Montagem", "Expedicao"].forEach(nome => {
+            const statusElement = document.getElementById(`status${nome}`);
+            const statusTextElement = document.getElementById(`statusText${nome}`);
+            statusElement.classList.add("connected");
+            statusElement.classList.remove("paused");
+            statusTextElement.textContent = "Conectado";
+        });
     }
 }
 
+// Função para redirecionar para a loja
 function irParaStore() {
-    // Redireciona para a tela store
     window.location.href = "/store";
+}
+
+// Funções auxiliares (simuladas)
+function pararSSEClps() {
+    console.log("Conexões SSE paradas");
+}
+
+function iniciarSSEClps() {
+    console.log("Conexões SSE iniciadas");
 }
