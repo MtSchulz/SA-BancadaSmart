@@ -127,7 +127,7 @@ public class ClpController {
         return "store";
     }
 
-     @PostMapping("/iniciar-pedido")
+     @PostMapping("/clp/pedidoTeste")
     public ResponseEntity<String> iniciarPedido(@RequestBody Map<String, Object> pedido) {
         try {
             String ipClp = (String) pedido.get("ipClp");
