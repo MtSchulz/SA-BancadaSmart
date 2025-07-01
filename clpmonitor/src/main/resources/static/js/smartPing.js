@@ -13,6 +13,9 @@ function conectarBancada() {
     const statusBancada = document.getElementById("statusBancada");
     const statusText = document.getElementById("statusText");
     const storeButton = document.getElementById("storeButtonContainer");
+    const networkStatus = document.getElementById("networkStatus");
+    const connectionDetails = document.getElementById("connectionDetails");
+    const statusIcon = document.querySelector('.status-icon');
     
     const ips = {
         estoque: document.getElementById("hostIpEstoque").value,
@@ -56,17 +59,29 @@ function conectarBancada() {
             // Atualiza UI para estado conectado
             statusBancada.classList.add("connected");
             statusBancada.classList.remove("paused");
-            statusText.textContent = "Status: Conectado";
+            statusText.textContent = "Conectado";
+            statusText.classList.add("connected");
             btn.textContent = "Desconectar";
             document.getElementById("btnPausar").disabled = false;
             conectado = true;
             pausado = false;
+            
+            // Atualiza ícone de rede na sidebar
+            networkStatus.classList.remove("disconnected", "paused");
+            networkStatus.classList.add("connected");
+            networkStatus.querySelector("span:last-child").textContent = "Rede: Conectado";
+            
+            // Atualizações para o novo status panel
+            statusIcon.textContent = 'power';
+            statusIcon.style.transform = 'scale(1.1)';
+            connectionDetails.textContent = 'Conexão estabelecida com sucesso';
             
             // Mostra o botão para a tela store
             storeButton.style.display = "block";
         })
         .catch(error => {
             console.error("Erro ao conectar:", error);
+            connectionDetails.textContent = 'Erro na conexão: ' + error.message;
         });
     } else {
         // Desconectar
@@ -75,7 +90,8 @@ function conectarBancada() {
 
         // Atualiza UI para estado desconectado
         statusBancada.classList.remove("connected", "paused");
-        statusText.textContent = "Status: Desconectado";
+        statusText.textContent = "Desconectado";
+        statusText.classList.remove("connected", "paused");
         btn.textContent = "Conectar";
         document.getElementById("btnPausar").disabled = true;
         conectado = false;
@@ -89,6 +105,16 @@ function conectarBancada() {
             statusTextElement.textContent = "Desconectado";
         });
 
+        // Atualiza ícone de rede na sidebar
+        networkStatus.classList.remove("connected", "paused");
+        networkStatus.classList.add("disconnected");
+        networkStatus.querySelector("span:last-child").textContent = "Rede: Desconectado";
+
+        // Atualizações para o novo status panel
+        statusIcon.textContent = 'power_off';
+        statusIcon.style.transform = 'scale(1)';
+        connectionDetails.textContent = 'Aguardando conexão...';
+
         // Esconde o botão para a tela store
         storeButton.style.display = "none";
     }
@@ -99,12 +125,17 @@ function pausarConexao() {
     const btnPausar = document.getElementById("btnPausar");
     const statusBancada = document.getElementById("statusBancada");
     const statusText = document.getElementById("statusText");
+    const networkStatus = document.getElementById("networkStatus");
+    const connectionDetails = document.getElementById("connectionDetails");
+    const statusIcon = document.querySelector('.status-icon');
 
     if (!pausado) {
         // Pausar conexão
         statusBancada.classList.remove("connected");
         statusBancada.classList.add("paused");
-        statusText.textContent = "Status: Pausado";
+        statusText.textContent = "Pausado";
+        statusText.classList.remove("connected");
+        statusText.classList.add("paused");
         btnPausar.textContent = "Retomar";
         pausado = true;
         
@@ -116,11 +147,22 @@ function pausarConexao() {
             statusElement.classList.add("paused");
             statusTextElement.textContent = "Pausado";
         });
+
+        // Atualiza ícone de rede na sidebar
+        networkStatus.classList.remove("connected");
+        networkStatus.classList.add("paused");
+        networkStatus.querySelector("span:last-child").textContent = "Rede: Pausado";
+
+        // Atualizações para o novo status panel
+        statusIcon.textContent = 'pause';
+        connectionDetails.textContent = 'Conexão em pausa';
     } else {
         // Retomar conexão
         statusBancada.classList.add("connected");
         statusBancada.classList.remove("paused");
-        statusText.textContent = "Status: Conectado";
+        statusText.textContent = "Conectado";
+        statusText.classList.add("connected");
+        statusText.classList.remove("paused");
         btnPausar.textContent = "Pausar";
         pausado = false;
         
@@ -132,6 +174,15 @@ function pausarConexao() {
             statusElement.classList.remove("paused");
             statusTextElement.textContent = "Conectado";
         });
+
+        // Atualiza ícone de rede na sidebar
+        networkStatus.classList.remove("paused");
+        networkStatus.classList.add("connected");
+        networkStatus.querySelector("span:last-child").textContent = "Rede: Conectado";
+
+        // Atualizações para o novo status panel
+        statusIcon.textContent = 'power';
+        connectionDetails.textContent = 'Conexão reestabelecida';
     }
 }
 
@@ -148,3 +199,18 @@ function pararSSEClps() {
 function iniciarSSEClps() {
     console.log("Conexões SSE iniciadas");
 }
+
+// Inicialização - Preenche os IPs padrão
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("serverIp").value = "192.168.1.11";
+    document.getElementById("hostIpEstoque").value = "192.168.1.101";
+    document.getElementById("hostIpProcesso").value = "192.168.1.102";
+    document.getElementById("hostIpMontagem").value = "192.168.1.103";
+    document.getElementById("hostIpExpedicao").value = "192.168.1.104";
+    
+    // Inicializa o status panel
+    const statusIcon = document.querySelector('.status-icon');
+    if (statusIcon) {
+        statusIcon.textContent = 'power_off';
+    }
+});

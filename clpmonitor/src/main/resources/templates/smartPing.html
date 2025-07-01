@@ -1,133 +1,174 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
-    <title>Monitoramento de CLPs</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" th:href="@{/css/smartPing.css}">
+  <title>Monitoramento de CLPs</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" th:href="@{/css/smartPing.css}">
 </head>
 
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>Bancada 4.0</h2>
-        </div>
-        <nav class="sidebar-nav">
-            <ul>
-                <li>
-                    <a href="smartPing" class="active">
-                        <span class="material-symbols-rounded">history</span>
-                        <span>Conexão</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/">
-                        <span class="material-symbols-rounded">description</span>
-                        <span>Edição</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="store">
-                        <span class="material-symbols-rounded">home</span>
-                        <span>Pedido</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="status">
-                        <span class="material-symbols-rounded">monitoring</span>
-                        <span>Status</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="settings">
-                        <span class="material-symbols-rounded">settings</span>
-                        <span>Configurações</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
+  <!-- SideBar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Bancada 4.0</h2>
     </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li>
+          <a href="smartPing" class="active">
+            <span class="material-symbols-rounded">home</span>
+            <span>Conexão</span>
+          </a>
+        </li>
+        <li>
+          <a href="store">
+            <span class="material-symbols-rounded">home</span>
+            <span>Pedido</span>
+          </a>
+        </li>
+        <li>
+          <a href="/">
+            <span class="material-symbols-rounded">description</span>
+            <span>Formulário</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
 
-    <!-- Conteúdo Principal -->
-    <div class="main-container">
-        <div class="container">
-          <header class="header">
-            <h1>Conexão CLPs</h1>
-          </header>
-    
-          <!-- Painel de Conexão -->
-          <div class="connection-panel">
-            <div class="control-panel">
-              <h3>Configuração de Conexão</h3>
-              <div class="form-group">
-                <label for="serverIp">IP do Servidor:</label>
-                <input type="text" id="serverIp" placeholder="192.168.1.100" />
-              </div>
-              <div class="button-group">
-                <button id="btnConectar" class="btn btn-primary" onclick="conectarBancada()">
-                  <span class="material-symbols-rounded">link</span>Conectar
-                </button>
-                <button id="btnPausar" class="btn btn-secondary" disabled onclick="pausarConexao()">
-                  <span class="material-symbols-rounded">pause</span>Pausar
-                </button>
-              </div>
+    <div id="networkStatus" class="network-status">
+      <span class="material-symbols-rounded">network_ping</span>
+      <span>Rede: Desconectado</span>
+    </div>
+  </div>
+
+  <!-- Conteúdo Principal -->
+  <div class="main-container">
+    <div class="container">
+      <header class="header">
+        <h1>Conexão CLPs</h1>
+      </header>
+
+      <!-- Painel de Controle -->
+      <div class="control-section">
+        <div class="connection-panel">
+          <div class="server-config">
+            <h3>Configuração do Servidor</h3>
+            <div class="form-group">
+              <label for="serverIp">IP do Servidor:</label>
+              <input type="text" id="serverIp" placeholder="192.168.1.100" />
             </div>
-    
-            <!-- Status Geral -->
-            <div class="status-indicator-panel">
-              <div id="statusBancada" class="status-circle"></div>
-              <span id="statusText">Status: Desconectado</span>
+            <div class="button-group">
+              <button id="btnConectar" class="btn btn-primary" onclick="conectarBancada()">
+                <span class="material-symbols-rounded">link</span>Conectar
+              </button>
+              <button id="btnPausar" class="btn btn-secondary" disabled onclick="pausarConexao()">
+                <span class="material-symbols-rounded">pause</span>Pausar
+              </button>
             </div>
           </div>
-    
-          <!-- Blocos Horizontais CLP -->
-          <div class="horizontal-blocks">
-            <div class="clp-block">
-              <h4>CLP Estoque</h4>
-              <input type="text" id="hostIpEstoque" placeholder="192.168.1.101" />
-              <div class="clp-status-text">
-                <div id="statusEstoque" class="clp-status-indicator"></div>
-                <span id="statusTextEstoque">Desconectado</span>
+
+          <div class="status-panel">
+            <div class="status-header">Status da Bancada</div>
+            <div class="status-indicator">
+              <div class="status-visual">
+                <div id="statusBancada" class="status-circle">
+                  <span class="material-symbols-rounded status-icon">power_off</span>
+                </div>
               </div>
-            </div>
-            <div class="clp-block">
-              <h4>CLP Processo</h4>
-              <input type="text" id="hostIpProcesso" placeholder="192.168.1.102" />
-              <div class="clp-status-text">
-                <div id="statusProcesso" class="clp-status-indicator"></div>
-                <span id="statusTextProcesso">Desconectado</span>
-              </div>
-            </div>
-            <div class="clp-block">
-              <h4>CLP Montagem</h4>
-              <input type="text" id="hostIpMontagem" placeholder="192.168.1.103" />
-              <div class="clp-status-text">
-                <div id="statusMontagem" class="clp-status-indicator"></div>
-                <span id="statusTextMontagem">Desconectado</span>
-              </div>
-            </div>
-            <div class="clp-block">
-              <h4>CLP Expedição</h4>
-              <input type="text" id="hostIpExpedicao" placeholder="192.168.1.104" />
-              <div class="clp-status-text">
-                <div id="statusExpedicao" class="clp-status-indicator"></div>
-                <span id="statusTextExpedicao">Desconectado</span>
+              <div id="statusText" class="status-text">Desconectado</div>
+              <div class="status-details">
+                <span id="connectionDetails">Aguardando conexão...</span>
               </div>
             </div>
           </div>
-    
-          <div id="storeButtonContainer" style="display: none; margin-top: 2rem; text-align: center;">
-            <button class="btn btn-primary" onclick="irParaStore()">
-              <span class="material-symbols-rounded">shopping_cart</span> Ir para Loja
-            </button>
+        </div>
+
+        <!-- Grid de CLPs -->
+        <div class="clp-grid">
+          <div class="clp-card" data-clp="estoque">
+            <div class="clp-header">
+              <div class="clp-icon">
+                <span class="material-symbols-rounded">inventory_2</span>
+              </div>
+              <h4 class="clp-title">CLP Estoque</h4>
+            </div>
+            <input type="text" id="hostIpEstoque" class="clp-ip-input" placeholder="192.168.1.101" />
+            <div class="clp-status-container">
+              <div class="clp-status-indicator">
+                <div id="statusEstoque" class="clp-status-badge"></div>
+                <span id="statusTextEstoque" class="clp-status-text">Desconectado</span>
+              </div>
+              <span class="clp-response-time" id="responseEstoque">-</span>
+            </div>
           </div>
+
+          <div class="clp-card" data-clp="processo">
+            <div class="clp-header">
+              <div class="clp-icon">
+                <span class="material-symbols-rounded">settings</span>
+              </div>
+              <h4 class="clp-title">CLP Processo</h4>
+            </div>
+            <input type="text" id="hostIpProcesso" class="clp-ip-input" placeholder="192.168.1.102" />
+            <div class="clp-status-container">
+              <div class="clp-status-indicator">
+                <div id="statusProcesso" class="clp-status-badge"></div>
+                <span id="statusTextProcesso" class="clp-status-text">Desconectado</span>
+              </div>
+              <span class="clp-response-time" id="responseProcesso">-</span>
+            </div>
+          </div>
+
+          <div class="clp-card" data-clp="montagem">
+            <div class="clp-header">
+              <div class="clp-icon">
+                <span class="material-symbols-rounded">build</span>
+              </div>
+              <h4 class="clp-title">CLP Montagem</h4>
+            </div>
+            <input type="text" id="hostIpMontagem" class="clp-ip-input" placeholder="192.168.1.103" />
+            <div class="clp-status-container">
+              <div class="clp-status-indicator">
+                <div id="statusMontagem" class="clp-status-badge"></div>
+                <span id="statusTextMontagem" class="clp-status-text">Desconectado</span>
+              </div>
+              <span class="clp-response-time" id="responseMontagem">-</span>
+            </div>
+          </div>
+
+          <div class="clp-card" data-clp="expedicao">
+            <div class="clp-header">
+              <div class="clp-icon">
+                <span class="material-symbols-rounded">local_shipping</span>
+              </div>
+              <h4 class="clp-title">CLP Expedição</h4>
+            </div>
+            <input type="text" id="hostIpExpedicao" class="clp-ip-input" placeholder="192.168.1.104" />
+            <div class="clp-status-container">
+              <div class="clp-status-indicator">
+                <div id="statusExpedicao" class="clp-status-badge"></div>
+                <span id="statusTextExpedicao" class="clp-status-text">Desconectado</span>
+              </div>
+              <span class="clp-response-time" id="responseExpedicao">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão para Loja (aparece quando conectado) -->
+        <div id="storeButtonContainer" class="store-button-container">
+          <button class="btn btn-primary" onclick="irParaStore()">
+            <span class="material-symbols-rounded">shopping_cart</span> Acessar Loja
+          </button>
         </div>
       </div>
+    </div>
 
     <script src="/js/smartPing.js"></script>
 </body>
+
 </html>
