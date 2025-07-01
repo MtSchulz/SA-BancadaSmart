@@ -276,11 +276,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const hostIpMontagem = getElement("hostIpMontagem");
     const hostIpExpedicao = getElement("hostIpExpedicao");
 
-    if (serverIp) serverIp.value = "192.168.1.11";
-    if (hostIpEstoque) hostIpEstoque.value = "192.168.1.101";
-    if (hostIpProcesso) hostIpProcesso.value = "192.168.1.102";
-    if (hostIpMontagem) hostIpMontagem.value = "192.168.1.103";
-    if (hostIpExpedicao) hostIpExpedicao.value = "192.168.1.104";
+    if (serverIp) serverIp.value = "10.74.241.0";
+    if (hostIpEstoque) hostIpEstoque.value = "10.74.241.10";
+    if (hostIpProcesso) hostIpProcesso.value = "10.74.241.20";
+    if (hostIpMontagem) hostIpMontagem.value = "10.74.241.30";
+    if (hostIpExpedicao) hostIpExpedicao.value = "10.74.241.40";
     
     // Inicializa o status panel
     const statusIcon = document.querySelector('.status-icon');
