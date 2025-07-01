@@ -139,7 +139,7 @@ function changePedidoView(id, lamina) {
   if (blockColor !== "") {
     const timestamp = new Date().getTime();
     blocoImg.src = `assets/bloco/rBlocoCor${blockColor}.png?t=${timestamp}`;
-    
+
     // Habilita os selects de cor
     ["l1-color-", "l2-color-", "l3-color-"].forEach(prefix => {
       document.getElementById(prefix + id).disabled = false;
@@ -161,13 +161,13 @@ function changePedidoView(id, lamina) {
     if (isSpun) {
       updateImage(`lamina${id}-3`, l1Color ? `assets/laminas/lamina3-${l1Color}.png?t=${timestamp}` : "#");
       updateImage(`lamina${id}-1`, l3Color ? `assets/laminas/lamina1-${l3Color}.png?t=${timestamp}` : "#");
-      
+
       updatePattern(`padrao${id}-3`, l3Pattern, timestamp);
       document.getElementById(`padrao${id}-1`).hidden = true;
     } else {
       updateImage(`lamina${id}-1`, l1Color ? `assets/laminas/lamina1-${l1Color}.png?t=${timestamp}` : "#");
       updateImage(`lamina${id}-3`, l3Color ? `assets/laminas/lamina3-${l3Color}.png?t=${timestamp}` : "#");
-      
+
       updatePattern(`padrao${id}-1`, l1Pattern, timestamp);
       document.getElementById(`padrao${id}-3`).hidden = true;
     }
@@ -272,57 +272,70 @@ function spin(id) {
  */
 // Envia pedido para a base de dados
 function enviarPedido() {
-  const formData = new FormData();
-  let hasData = false;
+  const tipoPedido = document.getElementById("tipoPedido").value;
+  const blocosCount = tipoPedido === "simples" ? 1 : tipoPedido === "duplo" ? 2 : 3;
 
-  // Iterar sobre todas as seções de bloco
-  $('div[id^="bloco-container-"]').each(function () {
-    const sectionId = this.id.split('-')[2]; // Extrai o número do bloco (1, 2, 3...)
-    hasData = true;
+  const pedido = {
+    ipClp: "10.74.241.10", // Defina o IP do CLP aqui ou obtenha de algum lugar
+    blocos: []
+  };
 
-    // Adicionar todos os campos do formulário mantendo a numeração original
-    const blockColor = $(`#block-color-${sectionId}`).val();
-    const l1Color = $(`#l1-color-${sectionId}`).val();
-    const l2Color = $(`#l2-color-${sectionId}`).val();
-    const l3Color = $(`#l3-color-${sectionId}`).val();
-    const l1Pattern = $(`#l1-pattern-${sectionId}`).val();
-    const l2Pattern = $(`#l2-pattern-${sectionId}`).val();
-    const l3Pattern = $(`#l3-pattern-${sectionId}`).val();
+  // Coletar dados de cada bloco
+  for (let i = 1; i <= blocosCount; i++) {
+    const blockColor = document.getElementById(`block-color-${i}`).value;
+    if (!blockColor) {
+      alert(`Por favor, selecione uma cor para o Bloco ${i}`);
+      return;
+    }
 
-    // Adiciona os dados ao FormData com prefixo para cada bloco
-    formData.append(`block-color-${sectionId}`, blockColor);
-    formData.append(`l1-color-${sectionId}`, l1Color);
-    formData.append(`l2-color-${sectionId}`, l2Color);
-    formData.append(`l3-color-${sectionId}`, l3Color);
-    if (l1Pattern) formData.append(`l1-pattern-${sectionId}`, l1Pattern);
-    if (l2Pattern) formData.append(`l2-pattern-${sectionId}`, l2Pattern);
-    if (l3Pattern) formData.append(`l3-pattern-${sectionId}`, l3Pattern);
-  });
+    const bloco = {
+      andar: i,
+      corBloco: parseInt(blockColor),
+      laminas: []
+    };
 
-  if (!hasData) {
-    alert("Nenhum bloco configurado para envio!");
-    return;
+    // Adicionar lâminas (1 a 3)
+    for (let j = 1; j <= 3; j++) {
+      const laminaColor = document.getElementById(`l${j}-color-${i}`).value;
+      const laminaPattern = document.getElementById(`l${j}-pattern-${i}`).value;
+
+      if (laminaColor) {
+        bloco.laminas.push({
+          cor: parseInt(laminaColor),
+          padrao: laminaPattern ? parseInt(laminaPattern) : 0
+        });
+      }
+    }
+
+    pedido.blocos.push(bloco);
   }
-
-  // Adiciona o número total de blocos (baseado no tipo de pedido selecionado)
-  const tipoPedido = $('#tipoPedido').val();
-  let totalBlocks = 1;
-  if (tipoPedido === 'duplo') totalBlocks = 2;
-  if (tipoPedido === 'triplo') totalBlocks = 3;
-  formData.append('total-blocks', totalBlocks);
-
-  // Aqui você adicionaria o código para enviar o formData para o servidor
-  console.log('Dados do pedido:', Object.fromEntries(formData));
 
   // Enviar para o servidor
   fetch("/clp/pedidoTeste", {
     method: "POST",
-    body: formData,
-  }).then((response) => {
-    if (response.redirected) {
-      window.location.href = response.url;
-    }
-  });
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(pedido)
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Erro ao enviar pedido");
+      }
+      return response.text(); //  Recebe texto 
+    })
+    .then(data => {
+      alert(data); // Mostra a mensagem do servidor (ex: "Pedido enviado com sucesso")
+      console.log("Resposta do servidor:", data);
+      // Limpar os selects
+      document.querySelectorAll('select').forEach(select => {
+        select.selectedIndex = 0; // Volta para a primeira opção (normalmente a vazia)
+      });
+    })
+    .catch(error => {
+      console.error("Erro:", error);
+      alert("Erro ao enviar pedido: " + error.message);
+    });
 }
 
 window.onclick = function (event) {

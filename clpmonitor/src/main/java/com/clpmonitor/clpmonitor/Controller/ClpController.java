@@ -84,32 +84,33 @@ public class ClpController {
             this.emitters.removeAll(deadEmitters);
         }
     }
-/*
-    @PostMapping("/pedidoTeste")
-    public String enviarPedido(@RequestParam Map<String, String> formData) {
-        try {
-            // Extrai os dados do formulário e prepara para o SmartService
-            int totalBlocos = 0;
-            for (int i = 1; i <= 3; i++) {
-                if (formData.containsKey("block-color-" + i)) {
-                    totalBlocos++;
-                }
-            }
 
-            if (totalBlocos > 0) {
-                // Chama diretamente o método de envio do SmartService
-                smartService.iniciarExecucaoPedido("10.74.241.10"); // IP do CLP de estoque
-
-                System.out.println("Pedido enviado via SmartService");
-            }
-
-            return "redirect:/store";
-        } catch (Exception e) {
-            System.err.println("Erro ao enviar pedido: " + e.getMessage());
-            return "redirect:/store?error=" + e.getMessage();
-        }
-    }
- */
+    /*
+     * @PostMapping("/pedidoTeste")
+     * public String enviarPedido(@RequestParam Map<String, String> formData) {
+     * try {
+     * // Extrai os dados do formulário e prepara para o SmartService
+     * int totalBlocos = 0;
+     * for (int i = 1; i <= 3; i++) {
+     * if (formData.containsKey("block-color-" + i)) {
+     * totalBlocos++;
+     * }
+     * }
+     * 
+     * if (totalBlocos > 0) {
+     * // Chama diretamente o método de envio do SmartService
+     * smartService.iniciarExecucaoPedido("10.74.241.10"); // IP do CLP de estoque
+     * 
+     * System.out.println("Pedido enviado via SmartService");
+     * }
+     * 
+     * return "redirect:/store";
+     * } catch (Exception e) {
+     * System.err.println("Erro ao enviar pedido: " + e.getMessage());
+     * return "redirect:/store?error=" + e.getMessage();
+     * }
+     * }
+     */
     @GetMapping("/fragments-formulario")
     public String carregarFragmentoFormulario(Model model) {
         model.addAttribute("tag", new TagWriteRequest());
@@ -127,26 +128,19 @@ public class ClpController {
         return "store";
     }
 
-     @PostMapping("/clp/pedidoTeste")
+    @PostMapping("/clp/pedidoTeste")
     public ResponseEntity<String> iniciarPedido(@RequestBody Map<String, Object> pedido) {
         try {
             String ipClp = (String) pedido.get("ipClp");
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
 
-            System.out.println("Pedido recebido para IP do CLP: " + ipClp);
-            for (Map<String, Object> bloco : blocos) {
-                System.out.println("Andar: " + bloco.get("andar") + ", Cor do Bloco: " + bloco.get("corBloco"));
-                
-                @SuppressWarnings("unchecked")
-                List<Map<String, Integer>> laminas = (List<Map<String, Integer>>) bloco.get("laminas");
-                int i = 1;
-                for (Map<String, Integer> lamina : laminas) {
-                    System.out.println("  Lâmina-" + i + ": Cor = " + lamina.get("cor") + ", Padrão = " + lamina.get("padrao"));
-                    i++;
-                }
+            // Validação básica
+            if (ipClp == null || ipClp.isEmpty() || blocos == null || blocos.isEmpty()) {
+                return ResponseEntity.badRequest().body("Dados do pedido inválidos");
             }
 
+            // 1. Montar os dados para o CLP
             byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
 
             System.out.print("Bytes do pedido em hexadecimal: ");
@@ -155,8 +149,11 @@ public class ClpController {
             }
             System.out.println();
 
-            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
-            smartService.iniciarExecucaoPedido(ipClp);
+            // 2. Enviar para o CLP - isso vai acionar o fluxo automático
+           // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
+
+            // 3. Iniciar a execução do pedido
+            //smartService.iniciarExecucaoPedido(ipClp);
 
             return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
         } catch (Exception e) {
@@ -233,7 +230,6 @@ public class ClpController {
 
     private byte[] montarPedidoParaCLP(List<Map<String, Object>> pedido) {
         int[] dados = new int[30];
-        Set<Integer> posicoesUsadas = new HashSet<>();
         int andares = pedido.size();
 
         for (Map<String, Object> bloco : pedido) {
@@ -246,14 +242,8 @@ public class ClpController {
             }
 
             int corBloco = (int) bloco.get("corBloco");
-            int posicaoEstoque = smartService.buscarPrimeiraPosicaoPorCor(corBloco, posicoesUsadas);
-
-            if (posicaoEstoque != -1) {
-                posicoesUsadas.add(posicaoEstoque);
-            }
-
             dados[indexBase] = corBloco;
-            dados[indexBase + 1] = posicaoEstoque;
+            dados[indexBase + 1] = 0; // Posição estoque será determinada pelo SmartService
 
             @SuppressWarnings("unchecked")
             List<Map<String, Integer>> laminas = (List<Map<String, Integer>>) bloco.get("laminas");
@@ -262,11 +252,11 @@ public class ClpController {
                 dados[indexBase + 5 + i] = laminas.get(i).get("padrao");
             }
 
-            dados[indexBase + 8] = 0;
+            dados[indexBase + 8] = 0; // Processamento
         }
 
-        // Número do pedido pode ser gerado ou obtido de outra forma
-        dados[27] = 1; // Substitua por sua lógica para gerar números de pedido
+        // Número do pedido e andares
+        dados[27] = 1; // Será sobrescrito pelo SmartService
         dados[28] = andares;
 
         ByteBuffer buffer = ByteBuffer.allocate(60).order(ByteOrder.BIG_ENDIAN);
