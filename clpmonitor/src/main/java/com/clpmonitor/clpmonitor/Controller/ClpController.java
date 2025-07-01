@@ -1,21 +1,27 @@
 package com.clpmonitor.clpmonitor.Controller;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.clpmonitor.clpmonitor.Model.TagWriteRequest;
-import com.clpmonitor.clpmonitor.Service.PedidoTesteService;
 import com.clpmonitor.clpmonitor.Service.SmartService;
 
 @Controller
@@ -36,9 +42,6 @@ public class ClpController {
 
     @Autowired
     private SmartService smartService;
-
-    @Autowired
-    private PedidoTesteService pedidoTesteService;
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -81,14 +84,32 @@ public class ClpController {
             this.emitters.removeAll(deadEmitters);
         }
     }
-
+/*
     @PostMapping("/pedidoTeste")
-    public String peditoTeste(@RequestParam Map<String, String> formData) {
-        System.out.println("Formdata: " + formData);
-        pedidoTesteService.enviarPedidoTeste(formData);
-        return "redirect:/store";
-    }
+    public String enviarPedido(@RequestParam Map<String, String> formData) {
+        try {
+            // Extrai os dados do formulário e prepara para o SmartService
+            int totalBlocos = 0;
+            for (int i = 1; i <= 3; i++) {
+                if (formData.containsKey("block-color-" + i)) {
+                    totalBlocos++;
+                }
+            }
 
+            if (totalBlocos > 0) {
+                // Chama diretamente o método de envio do SmartService
+                smartService.iniciarExecucaoPedido("10.74.241.10"); // IP do CLP de estoque
+
+                System.out.println("Pedido enviado via SmartService");
+            }
+
+            return "redirect:/store";
+        } catch (Exception e) {
+            System.err.println("Erro ao enviar pedido: " + e.getMessage());
+            return "redirect:/store?error=" + e.getMessage();
+        }
+    }
+ */
     @GetMapping("/fragments-formulario")
     public String carregarFragmentoFormulario(Model model) {
         model.addAttribute("tag", new TagWriteRequest());
@@ -104,6 +125,156 @@ public class ClpController {
     @GetMapping("/store")
     public String exibirStore() {
         return "store";
+    }
+
+     @PostMapping("/iniciar-pedido")
+    public ResponseEntity<String> iniciarPedido(@RequestBody Map<String, Object> pedido) {
+        try {
+            String ipClp = (String) pedido.get("ipClp");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
+
+            System.out.println("Pedido recebido para IP do CLP: " + ipClp);
+            for (Map<String, Object> bloco : blocos) {
+                System.out.println("Andar: " + bloco.get("andar") + ", Cor do Bloco: " + bloco.get("corBloco"));
+                
+                @SuppressWarnings("unchecked")
+                List<Map<String, Integer>> laminas = (List<Map<String, Integer>>) bloco.get("laminas");
+                int i = 1;
+                for (Map<String, Integer> lamina : laminas) {
+                    System.out.println("  Lâmina-" + i + ": Cor = " + lamina.get("cor") + ", Padrão = " + lamina.get("padrao"));
+                    i++;
+                }
+            }
+
+            byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
+
+            System.out.print("Bytes do pedido em hexadecimal: ");
+            for (byte b : bytePedidoArray) {
+                System.out.printf("%02X ", b);
+            }
+            System.out.println();
+
+            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
+            smartService.iniciarExecucaoPedido(ipClp);
+
+            return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao enviar pedido ao CLP: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/estoque/salvar")
+    public ResponseEntity<String> salvarEstoque(@RequestBody Map<String, Integer> dados) {
+        try {
+            byte[] byteBlocosArray = new byte[28];
+
+            dados.forEach((posStr, valor) -> {
+                try {
+                    int pos = Integer.parseInt(posStr.split(":")[1]);
+                    if (pos >= 1 && pos <= 28) {
+                        byteBlocosArray[pos - 1] = valor.byteValue();
+                        // Aqui você pode adicionar lógica para salvar no seu sistema se necessário
+                    }
+                } catch (Exception e) {
+                    System.err.println("Erro ao processar posição: " + posStr + " - " + e.getMessage());
+                }
+            });
+
+            return ResponseEntity.ok("Estoque processado com sucesso.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao processar estoque: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/expedicao/salvar")
+    public ResponseEntity<String> salvarExpedicao(@RequestBody Map<String, Integer> dados) {
+        try {
+            byte[] byteBlocosArray = new byte[24];
+
+            dados.forEach((posStr, valor) -> {
+                try {
+                    int pos = Integer.parseInt(posStr.split(":")[1]);
+                    if (pos >= 1 && pos <= 12) {
+                        int index = (pos - 1) * 2;
+                        byteBlocosArray[index] = (byte) (valor >> 8);
+                        byteBlocosArray[index + 1] = (byte) (valor & 0xFF);
+                        // Aqui você pode adicionar lógica para salvar no seu sistema se necessário
+                    }
+                } catch (Exception e) {
+                    System.err.println("Erro ao processar posição: " + posStr + " - " + e.getMessage());
+                }
+            });
+
+            return ResponseEntity.ok("Expedição processada com sucesso.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao processar expedição: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/estoque/primeira-posicao/{cor}")
+    public ResponseEntity<Integer> getPrimeiraPosicaoPorCor(@PathVariable int cor) {
+        Set<Integer> posicoesUsadas = new HashSet<>();
+        int posicao = smartService.buscarPrimeiraPosicaoPorCor(cor, posicoesUsadas);
+        return ResponseEntity.ok(posicao);
+    }
+
+    @GetMapping("/expedicao/primeira-livre")
+    public ResponseEntity<Integer> buscarLivre() {
+        int posicaoLivre = smartService.buscarPrimeiraPosicaoLivreExp();
+        return ResponseEntity.ok(posicaoLivre);
+    }
+
+    private byte[] montarPedidoParaCLP(List<Map<String, Object>> pedido) {
+        int[] dados = new int[30];
+        Set<Integer> posicoesUsadas = new HashSet<>();
+        int andares = pedido.size();
+
+        for (Map<String, Object> bloco : pedido) {
+            int andar = (int) bloco.get("andar");
+            int indexBase = (andar - 1) * 9;
+
+            if (indexBase + 8 >= dados.length) {
+                System.out.println("Ignorando andar fora do esperado: " + andar);
+                continue;
+            }
+
+            int corBloco = (int) bloco.get("corBloco");
+            int posicaoEstoque = smartService.buscarPrimeiraPosicaoPorCor(corBloco, posicoesUsadas);
+
+            if (posicaoEstoque != -1) {
+                posicoesUsadas.add(posicaoEstoque);
+            }
+
+            dados[indexBase] = corBloco;
+            dados[indexBase + 1] = posicaoEstoque;
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Integer>> laminas = (List<Map<String, Integer>>) bloco.get("laminas");
+            for (int i = 0; i < Math.min(3, laminas.size()); i++) {
+                dados[indexBase + 2 + i] = laminas.get(i).get("cor");
+                dados[indexBase + 5 + i] = laminas.get(i).get("padrao");
+            }
+
+            dados[indexBase + 8] = 0;
+        }
+
+        // Número do pedido pode ser gerado ou obtido de outra forma
+        dados[27] = 1; // Substitua por sua lógica para gerar números de pedido
+        dados[28] = andares;
+
+        ByteBuffer buffer = ByteBuffer.allocate(60).order(ByteOrder.BIG_ENDIAN);
+        for (int valor : dados) {
+            buffer.putShort((short) valor);
+        }
+
+        return buffer.array();
     }
 }
 

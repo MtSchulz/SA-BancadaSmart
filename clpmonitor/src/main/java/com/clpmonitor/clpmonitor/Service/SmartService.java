@@ -4,8 +4,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -319,46 +317,36 @@ public class SmartService {
     }
 
     public void iniciarExecucaoPedido(String ipClp) {
-
-        // Etapas a desenvolver:
-        // 1 - ATUALIZAR O PRÓXIMO NÚMERO DE PEDIDO
-        // MainFrame.posExpedArray[12] = MainFrame.posExpedArray[12] + 1;
-        // int orderProduction = obterProximoPedido();
-        // PlcConnector plcConnector = new PlcConnector(ipClp, 102); // ajuste o IP se
-        // necessário
         PlcConnector plcConnector = PlcConnectionManager.getConexao(ipClp);
         if (plcConnector == null) {
             return;
         }
 
+        // 1 - ATUALIZAR O PRÓXIMO NÚMERO DE PEDIDO
+        int proximoPedido = obterProximoNumeroPedido(); // Novo método adicionado
         posicaoExpedicaoSolicitada = buscarPrimeiraPosicaoLivreExp();
 
         try {
+            // Reset de flags conforme comentário
+            plcConnector.writeBit(9, 0, 0, false); // RecebidoOPEst
+            plcConnector.writeBit(9, 64, 0, false); // RecebidoEstoque
+            plcConnector.writeBit(9, 64, 1, false); // IniciarGuardarEst
 
-            // Inicializa as flags da estação ESTOQUE
-            // plcConnector.connect();
-            plcConnector.writeBit(9, 0, 0, Boolean.parseBoolean("FALSE"));
-            plcConnector.writeBit(9, 64, 0, Boolean.parseBoolean("FALSE"));
-            plcConnector.writeBit(9, 64, 1, Boolean.parseBoolean("FALSE"));
-            plcConnector.writeBit(9, 62, 0, Boolean.parseBoolean("FALSE"));
+            // Iniciar pedido conforme comentário
+            plcConnector.writeBit(9, 62, 0, true);
+            pedidoEmCurso = true;
 
-            // plcConnector.writeBit(9, 62, 0, Boolean.parseBoolean("FALSE"));
-            // Iniciar pedido
-            plcConnector.writeBit(9, 62, 0, Boolean.parseBoolean("TRUE"));
+            // Atualiza número do pedido no CLP (implementação sugerida no comentário)
+            plcConnector.writeInt(9, 96, proximoPedido); // DB9.96-97 para número do pedido
 
         } catch (Exception ex) {
-
+            System.err.println("Erro ao iniciar pedido: " + ex.getMessage());
         }
-        // Setar flag de PEDIDO EM CURSO
+    }
 
-        // 1 - ATUALIZAR O PRÓXIMO NÚMERO DE PEDIDO (Verificar se é necessário)
-        // MainFrame.posExpedArray[12] = MainFrame.posExpedArray[12] + 1;
-        // try {
-        // plcConnector.disconnect();
-        // } catch (Exception e) {
-        // // TODO Auto-generated catch block
-        // e.printStackTrace();
-        // }
+    private int obterProximoNumeroPedido() {
+        // Implementação básica - ajuste conforme sua lógica de negócio
+        return numeroOPEst + 1;
     }
 
     // *************************************************************
