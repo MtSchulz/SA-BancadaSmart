@@ -20,7 +20,7 @@
         <nav class="sidebar-nav">
             <ul>
                 <li>
-                    <a href="smartPing">
+                    <a href="smartPing" >
                         <span class="material-symbols-rounded">history</span>
                         <span>Conexão</span>
                     </a>
@@ -56,6 +56,7 @@
     <!-- Conteúdo Principal -->
     <div class="main-container">
         <div class="container">
+
             <h1>Pedido de Blocos</h1>
 
             <main class="main-content">
@@ -76,14 +77,28 @@
 
                 <div class="divider"></div>
 
-                <div class="status-section">
-                    <h2>Status do Pedido</h2>
-                    <div id="pedidoStatus"></div>
+                <!--
+                <div class="orders-section">
+                    <button class="btn btn-secondary" onclick="listarPedidos()">Listar Pedidos</button>
+                    <h2>Pedidos Recebidos</h2>
+                    <div id="listaPedidos" class="orders-list"></div>
                 </div>
+                -->
+                
+                <!-- Vizualizar bloco -->
+                <h1>Visualização Completa dos Blocos</h1>
+
+                <div class="form-section">
+                    <div id="visualizacaoBloco" class="bloco-view">
+                        <p>Configure os blocos e clique em "Atualizar Visualização"</p>
+                    </div>
+                </div>
+
             </main>
         </div>
     </div>
 
     <script src="/js/store.js"></script>
+    
 </body>
 </html>
