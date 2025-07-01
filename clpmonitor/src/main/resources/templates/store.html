@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +13,7 @@
 </head>
 
 <body>
-    <!-- Sidebar -->
+    <!-- SideBar -->
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>Bancada 4.0</h2>
@@ -20,15 +21,9 @@
         <nav class="sidebar-nav">
             <ul>
                 <li>
-                    <a href="smartPing" >
-                        <span class="material-symbols-rounded">history</span>
+                    <a href="smartPing">
+                        <span class="material-symbols-rounded">home</span>
                         <span>Conexão</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/">
-                        <span class="material-symbols-rounded">description</span>
-                        <span>Edição</span>
                     </a>
                 </li>
                 <li>
@@ -38,19 +33,18 @@
                     </a>
                 </li>
                 <li>
-                    <a href="status">
-                        <span class="material-symbols-rounded">monitoring</span>
-                        <span>Status</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="settings">
-                        <span class="material-symbols-rounded">settings</span>
-                        <span>Configurações</span>
+                    <a href="/">
+                        <span class="material-symbols-rounded">description</span>
+                        <span>Formulário</span>
                     </a>
                 </li>
             </ul>
         </nav>
+
+        <div id="networkStatus" class="network-status">
+            <span class="material-symbols-rounded">network_ping</span>
+            <span>Rede: Desconectado</span>
+        </div>
     </div>
 
     <!-- Conteúdo Principal -->
@@ -84,7 +78,7 @@
                     <div id="listaPedidos" class="orders-list"></div>
                 </div>
                 -->
-                
+
                 <!-- Vizualizar bloco -->
                 <h1>Visualização Completa dos Blocos</h1>
 
@@ -99,6 +93,7 @@
     </div>
 
     <script src="/js/store.js"></script>
-    
+
 </body>
+
 </html>
