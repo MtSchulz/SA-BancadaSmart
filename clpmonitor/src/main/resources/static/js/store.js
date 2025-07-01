@@ -315,7 +315,7 @@ function enviarPedido() {
   console.log('Dados do pedido:', Object.fromEntries(formData));
 
   // Enviar para o servidor
-  fetch("/pedidoTeste", {
+  fetch("/clp/pedidoTeste", {
     method: "POST",
     body: formData,
   }).then((response) => {
