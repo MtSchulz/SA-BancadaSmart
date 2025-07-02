@@ -17,9 +17,9 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Função para atualizar o status na sidebar
+// Função para atualizar o status na sidebar - MODIFICADA para melhor compatibilidade
 function atualizarStatusSidebar() {
-    const networkStatus = getElement('networkStatus');
+    const networkStatus = document.querySelector('#networkStatus');
     if (!networkStatus) return;
 
     const statusIcon = networkStatus.querySelector('.material-symbols-rounded');
@@ -42,7 +42,7 @@ function atualizarStatusSidebar() {
     }
 }
 
-// Função para atualizar os tempos de resposta
+// Função para atualizar os tempos de resposta (sem alterações)
 function updateResponseTimes() {
     if (!conectado) return;
 
@@ -87,7 +87,7 @@ function updateResponseTimes() {
     });
 }
 
-// Função principal de conexão
+// Função principal de conexão (sem alterações)
 function conectarBancada() {
     const btn = getElement("btnConectar");
     const statusBancada = getElement("statusBancada");
@@ -103,10 +103,10 @@ function conectarBancada() {
     }
 
     const ips = {
-        estoque: (getElement("hostIpEstoque") || {}).value || "192.168.1.101",
-        processo: (getElement("hostIpProcesso") || {}).value || "192.168.1.102",
-        montagem: (getElement("hostIpMontagem") || {}).value || "192.168.1.103",
-        expedicao: (getElement("hostIpExpedicao") || {}).value || "192.168.1.104"
+        estoque: (getElement("hostIpEstoque") || {}).value || "10.74.241.10",
+        processo: (getElement("hostIpProcesso") || {}).value || "10.74.241.20",
+        montagem: (getElement("hostIpMontagem") || {}).value || "10.74.241.30",
+        expedicao: (getElement("hostIpExpedicao") || {}).value || "10.74.241.40"
     };
 
     if (!conectado) {
@@ -224,7 +224,7 @@ function conectarBancada() {
     }
 }
 
-// Função para pausar conexão
+// Função para pausar conexão (sem alterações)
 function pausarConexao() {
     if (!conectado) return;
 
@@ -280,12 +280,12 @@ function pausarConexao() {
     atualizarStatusSidebar();
 }
 
-// Função para redirecionar para a loja
+// Função para redirecionar para a loja (sem alterações)
 function irParaStore() {
     window.location.href = "/store";
 }
 
-// Funções auxiliares (simuladas)
+// Funções auxiliares (simuladas) (sem alterações)
 function pararSSEClps() {
     console.log("Conexões SSE paradas");
 }
@@ -294,35 +294,33 @@ function iniciarSSEClps() {
     console.log("Conexões SSE iniciadas");
 }
 
-// Inicialização
+// Inicialização - MODIFICADA para funcionar em todas as páginas
 document.addEventListener("DOMContentLoaded", function() {
-    // Preenche os IPs padrão
-    const serverIp = getElement("serverIp");
-    const hostIpEstoque = getElement("hostIpEstoque");
-    const hostIpProcesso = getElement("hostIpProcesso");
-    const hostIpMontagem = getElement("hostIpMontagem");
-    const hostIpExpedicao = getElement("hostIpExpedicao");
+    // Preenche os IPs padrão apenas na página smartPing
+    if (window.location.pathname.includes('smartPing')) {
+        const serverIp = getElement("serverIp");
+        const hostIpEstoque = getElement("hostIpEstoque");
+        const hostIpProcesso = getElement("hostIpProcesso");
+        const hostIpMontagem = getElement("hostIpMontagem");
+        const hostIpExpedicao = getElement("hostIpExpedicao");
 
-    if (serverIp) serverIp.value = "10.74.241.0";
-    if (hostIpEstoque) hostIpEstoque.value = "10.74.241.10";
-    if (hostIpProcesso) hostIpProcesso.value = "10.74.241.20";
-    if (hostIpMontagem) hostIpMontagem.value = "10.74.241.30";
-    if (hostIpExpedicao) hostIpExpedicao.value = "10.74.241.40";
-    
-    // Atualiza UI conforme estado armazenado
-    const statusIcon = document.querySelector('.status-icon');
-    if (statusIcon) {
-        statusIcon.textContent = 'power_off';
+        if (serverIp) serverIp.value = "10.74.241.0";
+        if (hostIpEstoque) hostIpEstoque.value = "10.74.241.10";
+        if (hostIpProcesso) hostIpProcesso.value = "10.74.241.20";
+        if (hostIpMontagem) hostIpMontagem.value = "10.74.241.30";
+        if (hostIpExpedicao) hostIpExpedicao.value = "10.74.241.40";
+        
+        // Configura botões conforme estado
+        if (conectado) {
+            getElement("btnConectar").textContent = "Desconectar";
+            getElement("btnPausar").disabled = false;
+            getElement("btnPausar").textContent = pausado ? "Retomar" : "Pausar";
+            getElement("storeButtonContainer").style.display = "block";
+        }
+        
+        updateResponseTimes();
     }
     
-    // Configura botões conforme estado
-    if (conectado) {
-        getElement("btnConectar").textContent = "Desconectar";
-        getElement("btnPausar").disabled = false;
-        getElement("btnPausar").textContent = pausado ? "Retomar" : "Pausar";
-        getElement("storeButtonContainer").style.display = "block";
-    }
-    
-    updateResponseTimes();
+    // Atualiza a sidebar em todas as páginas
     atualizarStatusSidebar();
 });

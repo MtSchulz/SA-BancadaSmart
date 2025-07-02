@@ -269,18 +269,20 @@ function spin(id) {
 
 /**
  * Envia pedido para a base de dados
- */
-// Envia pedido para a base de dados
-function enviarPedido() {
+ */function enviarPedido() {
+  // Prevenir comportamento padrão do formulário
+  event.preventDefault();
+  
   const tipoPedido = document.getElementById("tipoPedido").value;
   const blocosCount = tipoPedido === "simples" ? 1 : tipoPedido === "duplo" ? 2 : 3;
 
   const pedido = {
-    ipClp: "10.74.241.10", // Defina o IP do CLP aqui ou obtenha de algum lugar
+    ipClp: "10.74.241.10",
+    tipoPedido: tipoPedido,
     blocos: []
   };
 
-  // Coletar dados de cada bloco
+  // Validação e coleta de dados (mantido igual)
   for (let i = 1; i <= blocosCount; i++) {
     const blockColor = document.getElementById(`block-color-${i}`).value;
     if (!blockColor) {
@@ -289,12 +291,12 @@ function enviarPedido() {
     }
 
     const bloco = {
-      andar: i,
+      andar: i, // Mantido para compatibilidade
       corBloco: parseInt(blockColor),
+      posicaoEstoque: 0, // Adicionado para novo formato
       laminas: []
     };
 
-    // Adicionar lâminas (1 a 3)
     for (let j = 1; j <= 3; j++) {
       const laminaColor = document.getElementById(`l${j}-color-${i}`).value;
       const laminaPattern = document.getElementById(`l${j}-pattern-${i}`).value;
@@ -310,44 +312,39 @@ function enviarPedido() {
     pedido.blocos.push(bloco);
   }
 
-  // Mostrar mensagem de carregamento
+  // Feedback visual
   const btnEnviar = document.querySelector('.btn-primary');
   const originalText = btnEnviar.innerHTML;
   btnEnviar.innerHTML = '<span class="material-symbols-rounded">hourglass_empty</span> Enviando...';
   btnEnviar.disabled = true;
 
-  // Enviar para o servidor
+  // Envio via fetch (POST)
   fetch("/clp/pedidoTeste", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(pedido)
   })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Erro ao enviar pedido");
-      }
-      return response.text();
-    })
-    .then(data => {
-      alert(data); // Mensagem do servidor
-      console.log("Resposta do servidor:", data);
-      
-      // Só limpa após confirmação do servidor
-      renderBlocos(); 
-    })
-    .catch(error => {
-      console.error("Erro:", error);
-      alert("Erro ao enviar pedido: " + error.message);
-    })
-    .finally(() => {
-      // Restaurar botão independente do resultado
-      btnEnviar.innerHTML = originalText;
-      btnEnviar.disabled = false;
-    });
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    alert(`Pedido ${tipoPedido} enviado com sucesso!`);
+    renderBlocos();
+  })
+  .catch(error => {
+    console.error("Erro:", error);
+    alert("Erro ao enviar pedido: " + error.message);
+  })
+  .finally(() => {
+    btnEnviar.innerHTML = originalText;
+    btnEnviar.disabled = false;
+  });
 }
- 
 window.onclick = function (event) {
   const modal = document.getElementById('pedidoModal');
   if (event.target == modal) {
