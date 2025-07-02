@@ -129,7 +129,6 @@ public ResponseEntity<Map<String, Object>> atualizarEstoque(
         Storage estoque = storageRepository.findById(1L)
                 .orElseThrow(() -> new RuntimeException("Estoque não encontrado"));
 
-        // Correção aqui - findFirstBy... ou usar Optional
         Optional<Block> blocoOpt = Optional.ofNullable(blockRepository.findByStorageId_IdAndPosition(estoque.getId(), posicao));
         Block bloco = blocoOpt.orElse(new Block());
         

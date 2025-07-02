@@ -129,37 +129,54 @@ public class ClpController {
     }
 
     @PostMapping("/clp/pedidoTeste")
-    public ResponseEntity<String> iniciarPedido(@RequestBody Map<String, Object> pedido) {
+    public ResponseEntity<Map<String, Object>> enviarPedido(@RequestBody Map<String, Object> pedido) {
         try {
             String ipClp = (String) pedido.get("ipClp");
+            String tipoPedido = (String) pedido.get("tipoPedido");
+
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
 
-            // Validação básica
-            if (ipClp == null || ipClp.isEmpty() || blocos == null || blocos.isEmpty()) {
-                return ResponseEntity.badRequest().body("Dados do pedido inválidos");
+            // Validação
+            if (ipClp == null || blocos == null || blocos.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Dados do pedido inválidos"));
             }
 
-            // 1. Montar os dados para o CLP
-            byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
+            // Processar pedido
+            for (Map<String, Object> bloco : blocos) {
+                int andar = bloco.containsKey("andar") ? (int) bloco.get("andar") : 1;
+                int corBloco = (int) bloco.get("corBloco");
+                int posicaoEstoque = bloco.containsKey("posicaoEstoque") ? (int) bloco.get("posicaoEstoque")
+                        : smartService.buscarPrimeiraPosicaoPorCor(corBloco, new HashSet<>());
 
+                System.out.println("Processando bloco - Andar: " + andar +
+                        ", Cor: " + corBloco +
+                        ", Posição Estoque: " + posicaoEstoque);
+            }
+
+            // Montar e enviar para CLP
+            byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
             System.out.print("Bytes do pedido em hexadecimal: ");
             for (byte b : bytePedidoArray) {
                 System.out.printf("%02X ", b);
             }
             System.out.println();
+            // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray,
+            // bytePedidoArray.length);
+            // smartService.iniciarExecucaoPedido(ipClp);
 
-            // 2. Enviar para o CLP - isso vai acionar o fluxo automático
-            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
-
-            // 3. Iniciar a execução do pedido
-            smartService.iniciarExecucaoPedido(ipClp);
-
-            return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Pedido processado com sucesso",
+                    "tipoPedido", tipoPedido,
+                    "totalBlocos", blocos.size()));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao enviar pedido ao CLP: " + e.getMessage());
+                    .body(Map.of(
+                            "success", false,
+                            "message", "Erro ao processar pedido: " + e.getMessage()));
         }
     }
 
@@ -173,7 +190,6 @@ public class ClpController {
                     int pos = Integer.parseInt(posStr.split(":")[1]);
                     if (pos >= 1 && pos <= 28) {
                         byteBlocosArray[pos - 1] = valor.byteValue();
-                        // Aqui você pode adicionar lógica para salvar no seu sistema se necessário
                     }
                 } catch (Exception e) {
                     System.err.println("Erro ao processar posição: " + posStr + " - " + e.getMessage());
