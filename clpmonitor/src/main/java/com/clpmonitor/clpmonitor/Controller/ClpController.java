@@ -150,10 +150,10 @@ public class ClpController {
             System.out.println();
 
             // 2. Enviar para o CLP - isso vai acionar o fluxo automático
-           // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
+            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
 
             // 3. Iniciar a execução do pedido
-            //smartService.iniciarExecucaoPedido(ipClp);
+            smartService.iniciarExecucaoPedido(ipClp);
 
             return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
         } catch (Exception e) {
