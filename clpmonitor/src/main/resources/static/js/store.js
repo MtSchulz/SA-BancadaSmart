@@ -347,7 +347,7 @@ function enviarPedido() {
       btnEnviar.disabled = false;
     });
 }
-
+ 
 window.onclick = function (event) {
   const modal = document.getElementById('pedidoModal');
   if (event.target == modal) {
