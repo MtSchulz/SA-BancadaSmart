@@ -731,31 +731,3 @@ img[src*="#"] {
     display: none;
 }
 
-/* Network Status na Sidebar */
-.network-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 1rem;
-    margin-top: auto;
-    margin-bottom: 1rem;
-    color: white;
-    border-top: 1px solid #444;
-    font-size: 0.9rem;
-}
-
-.network-status .material-symbols-rounded {
-    font-size: 1.2rem;
-}
-
-.network-status.disconnected {
-    color: var(--danger-color);
-}
-
-.network-status.connected {
-    color: var(--success-color);
-}
-
-.network-status.paused {
-    color: var(--warning-color);
-}

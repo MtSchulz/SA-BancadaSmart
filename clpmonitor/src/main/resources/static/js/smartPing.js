@@ -1,6 +1,6 @@
-// Variáveis de estado
-let conectado = false;
-let pausado = false;
+// Variáveis de estado com persistência
+let conectado = sessionStorage.getItem('bancadaConectada') === 'true' || false;
+let pausado = sessionStorage.getItem('bancadaPausada') === 'true' || false;
 let responseInterval;
 
 // Função auxiliar para seleção segura de elementos
@@ -15,6 +15,31 @@ function getElement(id) {
 // Função para capitalizar strings
 function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Função para atualizar o status na sidebar
+function atualizarStatusSidebar() {
+    const networkStatus = getElement('networkStatus');
+    if (!networkStatus) return;
+
+    const statusIcon = networkStatus.querySelector('.material-symbols-rounded');
+    const statusText = networkStatus.querySelector('span:last-child');
+
+    if (conectado) {
+        if (pausado) {
+            networkStatus.className = 'network-status paused';
+            if (statusIcon) statusIcon.textContent = 'pause';
+            if (statusText) statusText.textContent = 'Rede: Pausado';
+        } else {
+            networkStatus.className = 'network-status connected';
+            if (statusIcon) statusIcon.textContent = 'network_ping';
+            if (statusText) statusText.textContent = 'Rede: Conectado';
+        }
+    } else {
+        networkStatus.className = 'network-status disconnected';
+        if (statusIcon) statusIcon.textContent = 'network_ping';
+        if (statusText) statusText.textContent = 'Rede: Desconectado';
+    }
 }
 
 // Função para atualizar os tempos de resposta
@@ -119,32 +144,35 @@ function conectarBancada() {
             });
         })
         .then(() => {
-            // Atualiza UI para estado conectado
+            // Atualiza estado e armazena
+            conectado = true;
+            pausado = false;
+            sessionStorage.setItem('bancadaConectada', 'true');
+            sessionStorage.setItem('bancadaPausada', 'false');
+
+            // Atualiza UI
             statusBancada.classList.add("connected");
             statusBancada.classList.remove("paused");
             statusText.textContent = "Conectado";
             statusText.classList.add("connected");
             btn.textContent = "Desconectar";
             getElement("btnPausar").disabled = false;
-            conectado = true;
-            pausado = false;
             
-            // Atualiza ícone de rede
             networkStatus.classList.remove("disconnected", "paused");
             networkStatus.classList.add("connected");
             networkStatus.querySelector("span:last-child").textContent = "Rede: Conectado";
             
-            // Atualiza status panel
             statusIcon.textContent = 'power';
             statusIcon.style.transform = 'scale(1.1)';
             connectionDetails.textContent = 'Conexão estabelecida com sucesso';
             
-            // Inicia atualização dos tempos
             updateResponseTimes();
             responseInterval = setInterval(updateResponseTimes, 2000);
             
-            // Mostra botão da loja
             storeButton.style.display = "block";
+            
+            // Atualiza sidebar em todas as páginas
+            atualizarStatusSidebar();
         })
         .catch(error => {
             console.error("Erro ao conectar:", error);
@@ -157,16 +185,19 @@ function conectarBancada() {
         pararSSEClps();
         clearInterval(responseInterval);
 
-        // Atualiza UI para desconectado
+        // Atualiza estado e armazena
+        conectado = false;
+        pausado = false;
+        sessionStorage.setItem('bancadaConectada', 'false');
+        sessionStorage.setItem('bancadaPausada', 'false');
+
+        // Atualiza UI
         statusBancada.classList.remove("connected", "paused");
         statusText.textContent = "Desconectado";
         statusText.classList.remove("connected", "paused");
         btn.textContent = "Conectar";
         getElement("btnPausar").disabled = true;
-        conectado = false;
-        pausado = false;
         
-        // Atualiza CLPs
         ["Estoque", "Processo", "Montagem", "Expedicao"].forEach(nome => {
             const statusElement = getElement(`status${nome}`);
             const statusTextElement = getElement(`statusText${nome}`);
@@ -177,21 +208,19 @@ function conectarBancada() {
             }
         });
 
-        // Atualiza ícone de rede
         networkStatus.classList.remove("connected", "paused");
         networkStatus.classList.add("disconnected");
         networkStatus.querySelector("span:last-child").textContent = "Rede: Desconectado";
 
-        // Atualiza status panel
         statusIcon.textContent = 'power_off';
         statusIcon.style.transform = 'scale(1)';
         connectionDetails.textContent = 'Aguardando conexão...';
 
-        // Atualiza tempos
         updateResponseTimes();
-
-        // Esconde botão da loja
         storeButton.style.display = "none";
+        
+        // Atualiza sidebar em todas as páginas
+        atualizarStatusSidebar();
     }
 }
 
@@ -211,7 +240,11 @@ function pausarConexao() {
         return;
     }
 
-    if (!pausado) {
+    // Alterna estado de pausa
+    pausado = !pausado;
+    sessionStorage.setItem('bancadaPausada', pausado.toString());
+
+    if (pausado) {
         // Pausar conexão
         statusBancada.classList.remove("connected");
         statusBancada.classList.add("paused");
@@ -219,14 +252,11 @@ function pausarConexao() {
         statusText.classList.remove("connected");
         statusText.classList.add("paused");
         btnPausar.textContent = "Retomar";
-        pausado = true;
         
-        // Atualiza ícone de rede
         networkStatus.classList.remove("connected");
         networkStatus.classList.add("paused");
         networkStatus.querySelector("span:last-child").textContent = "Rede: Pausado";
 
-        // Atualiza status panel
         statusIcon.textContent = 'pause';
         connectionDetails.textContent = 'Conexão em pausa';
     } else {
@@ -237,20 +267,17 @@ function pausarConexao() {
         statusText.classList.add("connected");
         statusText.classList.remove("paused");
         btnPausar.textContent = "Pausar";
-        pausado = false;
         
-        // Atualiza ícone de rede
         networkStatus.classList.remove("paused");
         networkStatus.classList.add("connected");
         networkStatus.querySelector("span:last-child").textContent = "Rede: Conectado";
 
-        // Atualiza status panel
         statusIcon.textContent = 'power';
         connectionDetails.textContent = 'Conexão reestabelecida';
     }
 
-    // Atualiza CLPs
     updateResponseTimes();
+    atualizarStatusSidebar();
 }
 
 // Função para redirecionar para a loja
@@ -282,12 +309,20 @@ document.addEventListener("DOMContentLoaded", function() {
     if (hostIpMontagem) hostIpMontagem.value = "10.74.241.30";
     if (hostIpExpedicao) hostIpExpedicao.value = "10.74.241.40";
     
-    // Inicializa o status panel
+    // Atualiza UI conforme estado armazenado
     const statusIcon = document.querySelector('.status-icon');
     if (statusIcon) {
         statusIcon.textContent = 'power_off';
     }
     
-    // Inicializa os tempos
+    // Configura botões conforme estado
+    if (conectado) {
+        getElement("btnConectar").textContent = "Desconectar";
+        getElement("btnPausar").disabled = false;
+        getElement("btnPausar").textContent = pausado ? "Retomar" : "Pausar";
+        getElement("storeButtonContainer").style.display = "block";
+    }
+    
     updateResponseTimes();
+    atualizarStatusSidebar();
 });

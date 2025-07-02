@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" th:href="@{/css/store.css}">
     <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" href="/css/smartPing.css">
 </head>
 
 <body>
@@ -43,7 +44,7 @@
 
         <div id="networkStatus" class="network-status">
             <span class="material-symbols-rounded">network_ping</span>
-            <span>Rede: Desconectado</span>
+            <span>Rede: Carregando...</span>
         </div>
     </div>
 
@@ -91,6 +92,7 @@
     </div>
 
     <script src="/js/index.js"></script>
+    <script src="/js/smartPing.js"></script>
 </body>
 
 </html>

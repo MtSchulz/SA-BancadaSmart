@@ -84,28 +84,25 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 1rem;
-    margin-top: auto;
-    margin-bottom: 1rem;
-    color: white;
-    border-top: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 4px;
     font-size: 0.9rem;
-}
-
-.network-status .material-symbols-rounded {
-    font-size: 1.2rem;
-}
-
-.network-status.disconnected {
-    color: var(--danger-color);
+    transition: all 0.3s ease;
 }
 
 .network-status.connected {
+    background-color: rgba(67, 238, 110, 0.1);
     color: var(--success-color);
 }
 
 .network-status.paused {
+    background-color: rgba(248, 150, 30, 0.1);
     color: var(--warning-color);
+}
+
+.network-status.disconnected {
+    background-color: rgba(247, 37, 133, 0.1);
+    color: var(--danger-color);
 }
 
 /* Main Content */
