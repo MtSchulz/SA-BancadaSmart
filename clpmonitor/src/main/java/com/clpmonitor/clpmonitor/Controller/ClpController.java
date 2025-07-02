@@ -150,10 +150,10 @@ public class ClpController {
             System.out.println();
 
             // 2. Enviar para o CLP - isso vai acionar o fluxo automático
-            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
+           // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
 
             // 3. Iniciar a execução do pedido
-            smartService.iniciarExecucaoPedido(ipClp);
+            //smartService.iniciarExecucaoPedido(ipClp);
 
             return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
         } catch (Exception e) {
@@ -173,7 +173,6 @@ public class ClpController {
                     int pos = Integer.parseInt(posStr.split(":")[1]);
                     if (pos >= 1 && pos <= 28) {
                         byteBlocosArray[pos - 1] = valor.byteValue();
-                        // Aqui você pode adicionar lógica para salvar no seu sistema se necessário
                     }
                 } catch (Exception e) {
                     System.err.println("Erro ao processar posição: " + posStr + " - " + e.getMessage());

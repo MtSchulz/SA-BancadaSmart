@@ -489,7 +489,7 @@ public class SmartService {
             // eventos.add("Seq " + seq++ + ": finishOPEst == true & recebidoOpEst ==
             // false");
             if (readOnly == false) {
-                // System.out.println("Flag: RecebidoOPEstoque_TRUE");
+                 System.out.println("Flag: RecebidoOPEstoque_TRUE");
                 try {
                     // System.out.println("FinishOP: colocando RecebidoOPEstoque em TRUE");
                     // eventos.add("Seq " + seq++ + ": coloca RecebidoOPEst em TRUE");
