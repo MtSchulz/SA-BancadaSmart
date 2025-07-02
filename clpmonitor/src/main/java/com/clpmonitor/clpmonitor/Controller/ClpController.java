@@ -135,31 +135,49 @@ public class ClpController {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
 
-            // Validação básica
-            if (ipClp == null || ipClp.isEmpty() || blocos == null || blocos.isEmpty()) {
-                return ResponseEntity.badRequest().body("Dados do pedido inválidos");
+            if (ipClp == null || blocos == null || blocos.isEmpty()) {
+                return ResponseEntity.badRequest().body("Dados inválidos");
             }
 
-            // 1. Montar os dados para o CLP
+            // 1. Montar dados para o CLP
             byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
-
-            System.out.print("Bytes do pedido em hexadecimal: ");
+            System.out.print("Bytes do pedido (hex): ");
             for (byte b : bytePedidoArray) {
                 System.out.printf("%02X ", b);
             }
             System.out.println();
 
-            // 2. Enviar para o CLP - isso vai acionar o fluxo automático
-           // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
+            // 2. Para cada bloco: imprimir e preparar dados para o CLP
+            for (Map<String, Object> bloco : blocos) {
+                int blocoId = (int) bloco.get("id");
+                int posicaoEstoque = (int) bloco.get("posicaoEstoque");
+                int posicaoExpedicao = smartService.buscarPrimeiraPosicaoLivreExp();
 
-            // 3. Iniciar a execução do pedido
-            //smartService.iniciarExecucaoPedido(ipClp);
+                System.out
+                        .println("Removendo bloco ID: " + blocoId + " do estoque (posição: " + posicaoEstoque + ")");
+                System.out.println("Salvando na expedição (posição: " + posicaoExpedicao + ")");
 
-            return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
+                // 3. Remove do estoque (via CLP)
+                byte[] dadosRemocaoEstoque = new byte[] {
+                        (byte) posicaoEstoque, // Posição a liberar
+                        (byte) 0 // Valor 0 = posição livre
+                };
+               // smartService.enviarBlocoBytesAoClp(ipClp, 9, 66, dadosRemocaoEstoque, 2);
+
+                // 4. Salva na expedição (via CLP)
+                byte[] dadosExpedicao = ByteBuffer.allocate(2)
+                        .putShort((short) blocoId) // Converte blocoId para 2 bytes
+                        .array();
+                int offsetExpedicao = 6 + (posicaoExpedicao - 1) * 2; // Cálculo do offset no DB
+                smartService.enviarBlocoBytesAoClp(ipClp, 9, offsetExpedicao, dadosExpedicao, 2);
+            }
+
+            // 5. Inicia execução 
+           // smartService.iniciarExecucaoPedido(ipClp);
+
+            return ResponseEntity.ok("Pedido processado com sucesso.");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao enviar pedido ao CLP: " + e.getMessage());
+            return ResponseEntity.status(500).body("Erro: " + e.getMessage());
         }
     }
 
