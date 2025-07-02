@@ -127,62 +127,59 @@ public class ClpController {
     public String exibirStore() {
         return "store";
     }
+
     @PostMapping("/clp/pedidoTeste")
-    public ResponseEntity<String> enviarPedido(@RequestBody Map<String, Object> pedido) {
+    public ResponseEntity<Map<String, Object>> enviarPedido(@RequestBody Map<String, Object> pedido) {
         try {
             String ipClp = (String) pedido.get("ipClp");
+            String tipoPedido = (String) pedido.get("tipoPedido");
+
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
-    
+
+            // Validação
             if (ipClp == null || blocos == null || blocos.isEmpty()) {
-                return ResponseEntity.badRequest().body("Dados do pedido inválidos");
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Dados do pedido inválidos"));
             }
-    
-            // 1. Montar os dados para o CLP
+
+            // Processar pedido
+            for (Map<String, Object> bloco : blocos) {
+                int andar = bloco.containsKey("andar") ? (int) bloco.get("andar") : 1;
+                int corBloco = (int) bloco.get("corBloco");
+                int posicaoEstoque = bloco.containsKey("posicaoEstoque") ? (int) bloco.get("posicaoEstoque")
+                        : smartService.buscarPrimeiraPosicaoPorCor(corBloco, new HashSet<>());
+
+                System.out.println("Processando bloco - Andar: " + andar +
+                        ", Cor: " + corBloco +
+                        ", Posição Estoque: " + posicaoEstoque);
+            }
+
+            // Montar e enviar para CLP
             byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
-            
             System.out.print("Bytes do pedido em hexadecimal: ");
             for (byte b : bytePedidoArray) {
                 System.out.printf("%02X ", b);
             }
             System.out.println();
-    
-            // 2. Processar cada bloco
-            for (Map<String, Object> bloco : blocos) {
-                int blocoId = (int) bloco.get("id");
-                int posicaoEstoque = (int) bloco.get("posicaoEstoque");
-                int posicaoExpedicao = smartService.buscarPrimeiraPosicaoLivreExp();
-    
-                System.out.println("Removendo bloco ID: " + blocoId + " do estoque (posição: " + posicaoEstoque + ")");
-                System.out.println("Salvando na expedição (posição: " + posicaoExpedicao + ")");
-    
-                // 3. Remover do estoque (usando SmartService)
-                // Prepara dados para remoção (posição + valor 0)
-                byte[] dadosRemocao = new byte[]{(byte) posicaoEstoque, 0};
-                smartService.enviarBlocoBytesAoClp(ipClp, 9, 66, dadosRemocao, 2);
-    
-                // 4. Salvar na expedição (usando SmartService)
-                // Converte blocoId para 2 bytes
-                byte[] dadosExpedicao = ByteBuffer.allocate(2)
-                    .putShort((short) blocoId)
-                    .array();
-                int offsetExpedicao = 6 + (posicaoExpedicao - 1) * 2;
-                smartService.enviarBlocoBytesAoClp("10.74.241.40", 9, offsetExpedicao, dadosExpedicao, 2);
-            }
-    
-            // 5. Enviar pedido completo ao CLP
-            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray, bytePedidoArray.length);
-            
-            // 6. Iniciar execução do pedido
-            smartService.iniciarExecucaoPedido(ipClp);
-    
-            return ResponseEntity.ok("Pedido enviado ao CLP com sucesso.");
+            // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray,
+            // bytePedidoArray.length);
+            // smartService.iniciarExecucaoPedido(ipClp);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Pedido processado com sucesso",
+                    "tipoPedido", tipoPedido,
+                    "totalBlocos", blocos.size()));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao enviar pedido ao CLP: " + e.getMessage());
+                    .body(Map.of(
+                            "success", false,
+                            "message", "Erro ao processar pedido: " + e.getMessage()));
         }
     }
+
     @PostMapping("/estoque/salvar")
     public ResponseEntity<String> salvarEstoque(@RequestBody Map<String, Integer> dados) {
         try {
