@@ -310,6 +310,12 @@ function enviarPedido() {
     pedido.blocos.push(bloco);
   }
 
+  // Mostrar mensagem de carregamento
+  const btnEnviar = document.querySelector('.btn-primary');
+  const originalText = btnEnviar.innerHTML;
+  btnEnviar.innerHTML = '<span class="material-symbols-rounded">hourglass_empty</span> Enviando...';
+  btnEnviar.disabled = true;
+
   // Enviar para o servidor
   fetch("/clp/pedidoTeste", {
     method: "POST",
@@ -322,19 +328,23 @@ function enviarPedido() {
       if (!response.ok) {
         throw new Error("Erro ao enviar pedido");
       }
-      return response.text(); //  Recebe texto 
+      return response.text();
     })
     .then(data => {
-      alert(data); // Mostra a mensagem do servidor (ex: "Pedido enviado com sucesso")
+      alert(data); // Mensagem do servidor
       console.log("Resposta do servidor:", data);
-      // Limpar os selects
-      document.querySelectorAll('select').forEach(select => {
-        select.selectedIndex = 0; // Volta para a primeira opção (normalmente a vazia)
-      });
+      
+      // Só limpa após confirmação do servidor
+      renderBlocos(); 
     })
     .catch(error => {
       console.error("Erro:", error);
       alert("Erro ao enviar pedido: " + error.message);
+    })
+    .finally(() => {
+      // Restaurar botão independente do resultado
+      btnEnviar.innerHTML = originalText;
+      btnEnviar.disabled = false;
     });
 }
 
