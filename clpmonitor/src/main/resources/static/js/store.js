@@ -174,7 +174,11 @@ function changePedidoView(id, lamina) {
 
     // Lâmina/padrão do meio
     updateImage(`lamina${id}-2`, l2Color ? `assets/laminas/lamina2-${l2Color}.png?t=${timestamp}` : "#");
-    updatePattern(`padrao${id}-2`, l2Pattern, timestamp);
+    const patternElement = document.getElementById(`padrao${id}-2`);
+    if (patternElement) {
+      patternElement.src = l2Pattern ? `assets/padroes/padrao${l2Pattern}-2.png?t=${timestamp}` : "#";
+      patternElement.hidden = !l2Pattern;
+    }
 
     // Habilita os padrões caso uma cor esteja selecionada
     ["l1-pattern-", "l2-pattern-", "l3-pattern-"].forEach((prefix, index) => {
@@ -209,7 +213,11 @@ function updateImage(elementId, src) {
 function updatePattern(elementId, pattern, timestamp) {
   const element = document.getElementById(elementId);
   if (element) {
-    element.src = pattern ? `assets/padroes/padrao${pattern}-1.png?t=${timestamp}` : "#";
+    // Verifica se é o padrão da lâmina do meio (padraoX-2)
+    const isMiddlePattern = elementId.includes('-2');
+    const patternSuffix = isMiddlePattern ? '2' : '1';
+
+    element.src = pattern ? `assets/padroes/padrao${pattern}-${patternSuffix}.png?t=${timestamp}` : "#";
     element.hidden = !pattern;
   }
 }
@@ -269,20 +277,18 @@ function spin(id) {
 
 /**
  * Envia pedido para a base de dados
- */function enviarPedido() {
-  // Prevenir comportamento padrão do formulário
-  event.preventDefault();
-  
+ */
+// Envia pedido para a base de dados
+function enviarPedido() {
   const tipoPedido = document.getElementById("tipoPedido").value;
   const blocosCount = tipoPedido === "simples" ? 1 : tipoPedido === "duplo" ? 2 : 3;
 
   const pedido = {
-    ipClp: "10.74.241.10",
-    tipoPedido: tipoPedido,
+    ipClp: "10.74.241.10", // Defina o IP do CLP aqui ou obtenha de algum lugar
     blocos: []
   };
 
-  // Validação e coleta de dados (mantido igual)
+  // Coletar dados de cada bloco
   for (let i = 1; i <= blocosCount; i++) {
     const blockColor = document.getElementById(`block-color-${i}`).value;
     if (!blockColor) {
@@ -291,12 +297,12 @@ function spin(id) {
     }
 
     const bloco = {
-      andar: i, // Mantido para compatibilidade
+      andar: i,
       corBloco: parseInt(blockColor),
-      posicaoEstoque: 0, // Adicionado para novo formato
       laminas: []
     };
 
+    // Adicionar lâminas (1 a 3)
     for (let j = 1; j <= 3; j++) {
       const laminaColor = document.getElementById(`l${j}-color-${i}`).value;
       const laminaPattern = document.getElementById(`l${j}-pattern-${i}`).value;
@@ -312,39 +318,44 @@ function spin(id) {
     pedido.blocos.push(bloco);
   }
 
-  // Feedback visual
+  // Mostrar mensagem de carregamento
   const btnEnviar = document.querySelector('.btn-primary');
   const originalText = btnEnviar.innerHTML;
   btnEnviar.innerHTML = '<span class="material-symbols-rounded">hourglass_empty</span> Enviando...';
   btnEnviar.disabled = true;
 
-  // Envio via fetch (POST)
+  // Enviar para o servidor
   fetch("/clp/pedidoTeste", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
     body: JSON.stringify(pedido)
   })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    alert(`Pedido ${tipoPedido} enviado com sucesso!`);
-    renderBlocos();
-  })
-  .catch(error => {
-    console.error("Erro:", error);
-    alert("Erro ao enviar pedido: " + error.message);
-  })
-  .finally(() => {
-    btnEnviar.innerHTML = originalText;
-    btnEnviar.disabled = false;
-  });
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Erro ao enviar pedido");
+      }
+      return response.text();
+    })
+    .then(data => {
+      alert(data); // Mensagem do servidor
+      console.log("Resposta do servidor:", data);
+
+      // Só limpa após confirmação do servidor
+      renderBlocos();
+    })
+    .catch(error => {
+      console.error("Erro:", error);
+      alert("Erro ao enviar pedido: " + error.message);
+    })
+    .finally(() => {
+      // Restaurar botão independente do resultado
+      btnEnviar.innerHTML = originalText;
+      btnEnviar.disabled = false;
+    });
 }
+
 window.onclick = function (event) {
   const modal = document.getElementById('pedidoModal');
   if (event.target == modal) {
