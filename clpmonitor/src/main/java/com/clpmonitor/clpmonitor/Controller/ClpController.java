@@ -3,11 +3,13 @@ package com.clpmonitor.clpmonitor.Controller;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,8 +23,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.clpmonitor.clpmonitor.Model.Block;
+import com.clpmonitor.clpmonitor.Model.Orders;
+import com.clpmonitor.clpmonitor.Model.Storage;
 import com.clpmonitor.clpmonitor.Model.TagWriteRequest;
+import com.clpmonitor.clpmonitor.Repository.BlockRepository;
+import com.clpmonitor.clpmonitor.Repository.OrdersRepository;
 import com.clpmonitor.clpmonitor.Service.SmartService;
+
+import jakarta.transaction.Transactional;
 
 @Controller
 public class ClpController {
@@ -42,6 +51,12 @@ public class ClpController {
 
     @Autowired
     private SmartService smartService;
+
+    @Autowired
+    private OrdersRepository ordersRepository;
+
+    @Autowired
+    private BlockRepository blockRepository;
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -129,6 +144,7 @@ public class ClpController {
     }
 
     @PostMapping("/clp/pedidoTeste")
+    @Transactional  
     public ResponseEntity<Map<String, Object>> enviarPedido(@RequestBody Map<String, Object> pedido) {
         try {
             String ipClp = (String) pedido.get("ipClp");
@@ -137,46 +153,72 @@ public class ClpController {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
 
-            // Validação
-            if (ipClp == null || blocos == null || blocos.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "success", false,
-                        "message", "Dados do pedido inválidos"));
-            }
-
-            // Processar pedido
-            for (Map<String, Object> bloco : blocos) {
-                int andar = bloco.containsKey("andar") ? (int) bloco.get("andar") : 1;
-                int corBloco = (int) bloco.get("corBloco");
-                int posicaoEstoque = bloco.containsKey("posicaoEstoque") ? (int) bloco.get("posicaoEstoque")
-                        : smartService.buscarPrimeiraPosicaoPorCor(corBloco, new HashSet<>());
-
-                System.out.println("Processando bloco - Andar: " + andar +
-                        ", Cor: " + corBloco +
-                        ", Posição Estoque: " + posicaoEstoque);
-            }
-
-            // Montar e enviar para CLP
-            byte[] bytePedidoArray = montarPedidoParaCLP(blocos);
-            System.out.print("Bytes do pedido em hexadecimal: ");
-            for (byte b : bytePedidoArray) {
-                System.out.printf("%02X ", b);
-            }
-            System.out.println();
-            // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, bytePedidoArray,
-            // bytePedidoArray.length);
+            // 1. Iniciar execução no CLP
             // smartService.iniciarExecucaoPedido(ipClp);
+
+            // 2. Criar ordem de produção
+            long opNumber = System.currentTimeMillis() % 100_000_000;
+            Orders novaOrdem = new Orders();
+            novaOrdem.setProductionOrder(opNumber);
+            Orders ordemSalva = ordersRepository.save(novaOrdem);
+
+            // 3. Preparar dados para CLP
+            List<Map<String, Object>> blocosParaCLP = new ArrayList<>();
+            for (int i = 0; i < blocos.size(); i++) {
+                Map<String, Object> bloco = new HashMap<>(blocos.get(i));
+                bloco.put("andar", i + 1);
+                blocosParaCLP.add(bloco);
+            }
+
+            // 4. Processar cada bloco
+            for (int i = 0; i < blocos.size(); i++) {
+                Map<String, Object> bloco = blocos.get(i);
+                int corBloco = (int) bloco.get("corBloco");
+
+                // Lógica de estoque/expedição
+                Integer posicaoEstoque = blockRepository.findByStorageIdAndColor(1L, corBloco)
+                        .stream()
+                        .filter(b -> b.getProductionOrder() == null)
+                        .map(Block::getPosition)
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Bloco não encontrado no estoque"));
+
+                blockRepository.deleteByStorageId_IdAndPosition(1L, posicaoEstoque);
+
+                List<Integer> posicoesOcupadas = blockRepository.findPositionsByStorageId(2L);
+                int posicaoLivre = IntStream.rangeClosed(1, 12)
+                        .filter(pos -> !posicoesOcupadas.contains(pos))
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Expedição cheia"));
+
+                Block novoBloco = new Block();
+                novoBloco.setPosition(posicaoLivre);
+                novoBloco.setColor(corBloco);
+
+                // Correção aqui:
+                Storage expedicao = new Storage();
+                expedicao.setId(2L); // ID da expedição
+                novoBloco.setStorageId(expedicao);
+
+                novoBloco.setProductionOrder(ordemSalva);
+                blockRepository.save(novoBloco);
+            }
+
+            // 5. Enviar dados completos para o CLP
+            byte[] dadosCLP = montarPedidoParaCLP(blocosParaCLP);
+            // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Pedido processado com sucesso",
+                    "orderId", ordemSalva.getId(),
                     "tipoPedido", tipoPedido,
                     "totalBlocos", blocos.size()));
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "success", false,
-                            "message", "Erro ao processar pedido: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Erro: " + e.getMessage()));
         }
     }
 
@@ -216,7 +258,6 @@ public class ClpController {
                         int index = (pos - 1) * 2;
                         byteBlocosArray[index] = (byte) (valor >> 8);
                         byteBlocosArray[index + 1] = (byte) (valor & 0xFF);
-                        // Aqui você pode adicionar lógica para salvar no seu sistema se necessário
                     }
                 } catch (Exception e) {
                     System.err.println("Erro ao processar posição: " + posStr + " - " + e.getMessage());
@@ -282,102 +323,102 @@ public class ClpController {
 
         return buffer.array();
     }
-}
 
-// -------------- Ping Function --------------
-/*
- * @PostMapping("/smart/ping")
- * public Map<String, Boolean> pingHosts(@RequestBody Map<String, String> ips) {
- * Map<String, Boolean> resultados = new HashMap<>();
- * ips.forEach((nome, ip) -> {
- * try {
- * boolean online = InetAddress.getByName(ip).isReachable(2000);
- * resultados.put(nome, online);
- * } catch (IOException e) {
- * resultados.put(nome, false);
- * }
- * });
- * return resultados;
- * }
- * 
- * 
- * @PostMapping("/start-leituras")
- * public ResponseEntity<String> startLeituras(@RequestBody Map<String, String>
- * ips) {
- * ips.forEach((nome, ip) -> {
- * if (!leituraFutures.containsKey(nome)) {
- * PlcConnector plcConnector = PlcConnectionManager.getConexao(ip);
- * if (plcConnector == null) {
- * System.err.println("Erro ao obter conexão com o CLP: " + ip);
- * return; // ignora esse CLP e continua com os demais
- * }
- * 
- * PlcReaderTask task = null;
- * switch (nome.toLowerCase()) {
- * case "estoque" -> task = new PlcReaderTask(plcConnector, nome, 9, 0, 111,
- * dados -> {
- * ClpController.dadosClp1 = dados;
- * smartService.clpEstoque(ip, dados);
- * atualizarCache("estoque", dados);
- * });
- * 
- * case "processo" -> task = new PlcReaderTask(plcConnector, nome, 2, 0, 9,
- * dados -> {
- * ClpController.dadosClp2 = dados;
- * smartService.clpProcesso(ip, dados);
- * atualizarCache("processo", dados);
- * });
- * 
- * case "montagem" -> task = new PlcReaderTask(plcConnector, nome, 57, 0, 9,
- * dados -> {
- * ClpController.dadosClp3 = dados;
- * smartService.clpMontagem(ip, dados);
- * atualizarCache("montagem", dados);
- * });
- * 
- * case "expedicao" -> task = new PlcReaderTask(plcConnector, nome, 9, 0, 48,
- * dados -> {
- * ClpController.dadosClp4 = dados;
- * smartService.clpExpedicao(ip, dados);
- * atualizarCache("expedicao", dados);
- * });
- * 
- * default -> {
- * System.err.println("Nome de CLP inválido: " + nome);
- * return;
- * }
- * }
- * 
- * if (task != null) {
- * ScheduledFuture<?> future = leituraExecutor.scheduleAtFixedRate(task, 0, 800,
- * TimeUnit.MILLISECONDS);
- * leituraFutures.put(nome, future);
- * }
- * }
- * });
- * 
- * return ResponseEntity.ok("Leituras com PlcReaderTask iniciadas.");
- * }
- * 
- * 
- * private void atualizarCache(String nome, byte[] dados) {
- * StringBuilder sb = new StringBuilder();
- * for (byte b : dados) {
- * sb.append(String.format("%02X ", b));
- * }
- * leiturasCache.put(nome, sb.toString().trim());
- * }
- * 
- * 
- * 
- * @PostMapping("/stop-leituras")
- * public ResponseEntity<String> stopLeituras() {
- * leituraFutures.forEach((nome, future) -> {
- * future.cancel(true);
- * System.out.println("Thread de leitura '" + nome + "' cancelada.");
- * });
- * leituraFutures.clear();
- * PlcConnectionManager.encerrarTodasAsConexoes();
- * return ResponseEntity.ok("Leituras interrompidas.");
- * }
- */
+    // -------------- Ping Function --------------
+    /*
+     * @PostMapping("/smart/ping")
+     * public Map<String, Boolean> pingHosts(@RequestBody Map<String, String> ips) {
+     * Map<String, Boolean> resultados = new HashMap<>();
+     * ips.forEach((nome, ip) -> {
+     * try {
+     * boolean online = InetAddress.getByName(ip).isReachable(2000);
+     * resultados.put(nome, online);
+     * } catch (IOException e) {
+     * resultados.put(nome, false);
+     * }
+     * });
+     * return resultados;
+     * }
+     * 
+     * 
+     * @PostMapping("/start-leituras")
+     * public ResponseEntity<String> startLeituras(@RequestBody Map<String, String>
+     * ips) {
+     * ips.forEach((nome, ip) -> {
+     * if (!leituraFutures.containsKey(nome)) {
+     * PlcConnector plcConnector = PlcConnectionManager.getConexao(ip);
+     * if (plcConnector == null) {
+     * System.err.println("Erro ao obter conexão com o CLP: " + ip);
+     * return; // ignora esse CLP e continua com os demais
+     * }
+     * 
+     * PlcReaderTask task = null;
+     * switch (nome.toLowerCase()) {
+     * case "estoque" -> task = new PlcReaderTask(plcConnector, nome, 9, 0, 111,
+     * dados -> {
+     * ClpController.dadosClp1 = dados;
+     * smartService.clpEstoque(ip, dados);
+     * atualizarCache("estoque", dados);
+     * });
+     * 
+     * case "processo" -> task = new PlcReaderTask(plcConnector, nome, 2, 0, 9,
+     * dados -> {
+     * ClpController.dadosClp2 = dados;
+     * smartService.clpProcesso(ip, dados);
+     * atualizarCache("processo", dados);
+     * });
+     * 
+     * case "montagem" -> task = new PlcReaderTask(plcConnector, nome, 57, 0, 9,
+     * dados -> {
+     * ClpController.dadosClp3 = dados;
+     * smartService.clpMontagem(ip, dados);
+     * atualizarCache("montagem", dados);
+     * });
+     * 
+     * case "expedicao" -> task = new PlcReaderTask(plcConnector, nome, 9, 0, 48,
+     * dados -> {
+     * ClpController.dadosClp4 = dados;
+     * smartService.clpExpedicao(ip, dados);
+     * atualizarCache("expedicao", dados);
+     * });
+     * 
+     * default -> {
+     * System.err.println("Nome de CLP inválido: " + nome);
+     * return;
+     * }
+     * }
+     * 
+     * if (task != null) {
+     * ScheduledFuture<?> future = leituraExecutor.scheduleAtFixedRate(task, 0, 800,
+     * TimeUnit.MILLISECONDS);
+     * leituraFutures.put(nome, future);
+     * }
+     * }
+     * });
+     * 
+     * return ResponseEntity.ok("Leituras com PlcReaderTask iniciadas.");
+     * }
+     * 
+     * 
+     * private void atualizarCache(String nome, byte[] dados) {
+     * StringBuilder sb = new StringBuilder();
+     * for (byte b : dados) {
+     * sb.append(String.format("%02X ", b));
+     * }
+     * leiturasCache.put(nome, sb.toString().trim());
+     * }
+     * 
+     * 
+     * 
+     * @PostMapping("/stop-leituras")
+     * public ResponseEntity<String> stopLeituras() {
+     * leituraFutures.forEach((nome, future) -> {
+     * future.cancel(true);
+     * System.out.println("Thread de leitura '" + nome + "' cancelada.");
+     * });
+     * leituraFutures.clear();
+     * PlcConnectionManager.encerrarTodasAsConexoes();
+     * return ResponseEntity.ok("Leituras interrompidas.");
+     * }
+     */
+}
