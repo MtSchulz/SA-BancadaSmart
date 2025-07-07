@@ -155,7 +155,7 @@ function changePedidoView(id, lamina) {
     const l3Pattern = document.getElementById("l3-pattern-" + id).value;
 
     const view = document.getElementById("pedido-view" + id);
-    const isSpun = view.dataset.isSpun === "true";
+    const isSpun = view.dataset.isSpun === "true"; 
 
     // Atualiza as lâminas e padrões
     if (isSpun) {
