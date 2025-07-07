@@ -401,7 +401,24 @@ function listarPedidos() {
 }
 
 
+function updateExpedition(data = null) {
+  const grid = document.getElementById('expedition-grid');
+  if (!grid) return;
 
+  // Se não receber dados, busca do servidor
+  if (!data) {
+      fetch('/expedicao/listar')
+          .then(response => response.json())
+          .then(data => renderExpedition(data))
+          .catch(error => {
+              console.error('Erro ao atualizar expedição:', error);
+              alert('Erro ao atualizar expedição: ' + error.message);
+          });
+      return;
+  }
+
+  renderExpedition(data);
+}
 
 // =============================================
 // Funções de histórico

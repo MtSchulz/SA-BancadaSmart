@@ -195,7 +195,6 @@ public class ClpController {
                 novoBloco.setPosition(posicaoLivre);
                 novoBloco.setColor(corBloco);
 
-                // Correção aqui:
                 Storage expedicao = new Storage();
                 expedicao.setId(2L); // ID da expedição
                 novoBloco.setStorageId(expedicao);
@@ -207,6 +206,11 @@ public class ClpController {
             // 5. Enviar dados completos para o CLP
             byte[] dadosCLP = montarPedidoParaCLP(blocosParaCLP);
             // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
+            System.out.print("Bytes do pedido em hexadecimal: ");
+            for (byte b : dadosCLP) {
+                System.out.printf("%02X ", b);
+            }
+            System.out.println();
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
