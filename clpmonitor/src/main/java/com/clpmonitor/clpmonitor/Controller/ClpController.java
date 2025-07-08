@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -144,7 +143,7 @@ public class ClpController {
     }
 
     @PostMapping("/clp/pedidoTeste")
-    @Transactional  
+    @Transactional
     public ResponseEntity<Map<String, Object>> enviarPedido(@RequestBody Map<String, Object> pedido) {
         try {
             String ipClp = (String) pedido.get("ipClp");
@@ -153,59 +152,70 @@ public class ClpController {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
 
-            // 1. Iniciar execução no CLP
+            //  Iniciar execução no CLP
             // smartService.iniciarExecucaoPedido(ipClp);
 
-            // 2. Criar ordem de produção
+            //  Criar ordem de produção (deve vir antes do processamento)
             long opNumber = System.currentTimeMillis() % 100_000_000;
             Orders novaOrdem = new Orders();
             novaOrdem.setProductionOrder(opNumber);
             Orders ordemSalva = ordersRepository.save(novaOrdem);
 
-            // 3. Preparar dados para CLP
+            //  Preparar dados para CLP e coletar posições
             List<Map<String, Object>> blocosParaCLP = new ArrayList<>();
+            Map<Integer, Integer> posicoesEstoquePorAndar = new HashMap<>();
+            Set<Integer> posicoesUsadas = new HashSet<>();
+
             for (int i = 0; i < blocos.size(); i++) {
                 Map<String, Object> bloco = new HashMap<>(blocos.get(i));
-                bloco.put("andar", i + 1);
+                int andar = i + 1;
+                bloco.put("andar", andar);
                 blocosParaCLP.add(bloco);
+
+                int corBloco = (int) bloco.get("corBloco");
+
+                // Buscar posição no estoque
+                int posicaoEstoque = smartService.buscarPrimeiraPosicaoPorCor(corBloco, posicoesUsadas);
+                if (posicaoEstoque == -1) {
+                    throw new RuntimeException("Bloco não encontrado no estoque");
+                }
+                posicoesUsadas.add(posicaoEstoque);
+                posicoesEstoquePorAndar.put(andar, posicaoEstoque);
             }
 
-            // 4. Processar cada bloco
+            //  Processar cada bloco (movimentação física)
             for (int i = 0; i < blocos.size(); i++) {
                 Map<String, Object> bloco = blocos.get(i);
                 int corBloco = (int) bloco.get("corBloco");
+                int andar = i + 1;
+                int posicaoEstoque = posicoesEstoquePorAndar.get(andar);
 
-                // Lógica de estoque/expedição
-                Integer posicaoEstoque = blockRepository.findByStorageIdAndColor(1L, corBloco)
-                        .stream()
-                        .filter(b -> b.getProductionOrder() == null)
-                        .map(Block::getPosition)
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Bloco não encontrado no estoque"));
-
+                // Remover do estoque
                 blockRepository.deleteByStorageId_IdAndPosition(1L, posicaoEstoque);
 
-                List<Integer> posicoesOcupadas = blockRepository.findPositionsByStorageId(2L);
-                int posicaoLivre = IntStream.rangeClosed(1, 12)
-                        .filter(pos -> !posicoesOcupadas.contains(pos))
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Expedição cheia"));
+                // Adicionar na expedição
+                int posicaoLivre = smartService.buscarPrimeiraPosicaoLivreExp();
+                if (posicaoLivre == -1) {
+                    throw new RuntimeException("Expedição cheia");
+                }
 
                 Block novoBloco = new Block();
                 novoBloco.setPosition(posicaoLivre);
                 novoBloco.setColor(corBloco);
 
                 Storage expedicao = new Storage();
-                expedicao.setId(2L); // ID da expedição
+                expedicao.setId(2L);
                 novoBloco.setStorageId(expedicao);
 
                 novoBloco.setProductionOrder(ordemSalva);
                 blockRepository.save(novoBloco);
             }
 
-            // 5. Enviar dados completos para o CLP
-            byte[] dadosCLP = montarPedidoParaCLP(blocosParaCLP);
+            //  Montar e enviar dados para CLP
+            byte[] dadosCLP = montarPedidoParaCLP(blocosParaCLP, posicoesEstoquePorAndar, opNumber);
             // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
+
+            // Exibição dos bytes em hexadecimal
             System.out.print("Bytes do pedido em hexadecimal: ");
             for (byte b : dadosCLP) {
                 System.out.printf("%02X ", b);
@@ -289,7 +299,8 @@ public class ClpController {
         return ResponseEntity.ok(posicaoLivre);
     }
 
-    private byte[] montarPedidoParaCLP(List<Map<String, Object>> pedido) {
+    private byte[] montarPedidoParaCLP(List<Map<String, Object>> pedido, Map<Integer, Integer> posicoesEstoque,
+            long numeroPedido) {
         int[] dados = new int[30];
         int andares = pedido.size();
 
@@ -302,10 +313,14 @@ public class ClpController {
                 continue;
             }
 
+            // Cor do bloco
             int corBloco = (int) bloco.get("corBloco");
             dados[indexBase] = corBloco;
-            dados[indexBase + 1] = 0; // Posição estoque será determinada pelo SmartService
 
+            // Posição no estoque (usando o mapa fornecido)
+            dados[indexBase + 1] = posicoesEstoque.get(andar);
+
+            // Lâminas
             @SuppressWarnings("unchecked")
             List<Map<String, Integer>> laminas = (List<Map<String, Integer>>) bloco.get("laminas");
             for (int i = 0; i < Math.min(3, laminas.size()); i++) {
@@ -313,11 +328,11 @@ public class ClpController {
                 dados[indexBase + 5 + i] = laminas.get(i).get("padrao");
             }
 
-            dados[indexBase + 8] = 0; // Processamento
+            dados[indexBase + 8] = 0; // Processamento (pode ser mantido como 0)
         }
 
         // Número do pedido e andares
-        dados[27] = 1; // Será sobrescrito pelo SmartService
+        dados[27] = (int) (numeroPedido & 0xFFFF); // Converte para 2 bytes
         dados[28] = andares;
 
         ByteBuffer buffer = ByteBuffer.allocate(60).order(ByteOrder.BIG_ENDIAN);

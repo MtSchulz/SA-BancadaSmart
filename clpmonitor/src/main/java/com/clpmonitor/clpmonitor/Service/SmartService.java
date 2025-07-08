@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -317,6 +318,14 @@ public class SmartService {
     }
 
     public void iniciarExecucaoPedido(String ipClp) {
+
+        try {
+            sincronizarDadosComCLP();
+        } catch (Exception e) {
+            System.err.println("Aviso: Falha na sincronização inicial. Continuando com o pedido...");
+            // Não interrompe o fluxo mesmo se a sincronização falhar
+        }
+
         PlcConnector plcConnector = PlcConnectionManager.getConexao(ipClp);
         if (plcConnector == null) {
             return;
@@ -489,7 +498,7 @@ public class SmartService {
             // eventos.add("Seq " + seq++ + ": finishOPEst == true & recebidoOpEst ==
             // false");
             if (readOnly == false) {
-                 System.out.println("Flag: RecebidoOPEstoque_TRUE");
+                System.out.println("Flag: RecebidoOPEstoque_TRUE");
                 try {
                     // System.out.println("FinishOP: colocando RecebidoOPEstoque em TRUE");
                     // eventos.add("Seq " + seq++ + ": coloca RecebidoOPEst em TRUE");
@@ -1297,6 +1306,70 @@ public class SmartService {
                 emitters.remove(emitter);
             }
         }
+    }
+
+    public void sincronizarDadosComCLP() {
+        // Lista de IPs dos CLPs com seus respectivos parâmetros
+        Map<String, Map<String, Object>> clps = Map.of(
+                "10.74.241.10", Map.of( // Estoque
+                        "db", 9,
+                        "offset", 68,
+                        "size", 28,
+                        "storageId", 1L),
+                "10.74.241.40", Map.of( // Expedição
+                        "db", 9,
+                        "offset", 6,
+                        "size", 24,
+                        "storageId", 2L));
+
+        for (Map.Entry<String, Map<String, Object>> entry : clps.entrySet()) {
+            String ip = entry.getKey();
+            Map<String, Object> params = entry.getValue();
+
+            try {
+                System.out.println("Tentando sincronizar com CLP: " + ip);
+
+                List<Block> blocos = blockRepository.findByStorageId_Id((Long) params.get("storageId"));
+                if (blocos == null || blocos.isEmpty()) {
+                    System.out.println("Nenhum dado encontrado para armazenamento ID: " + params.get("storageId"));
+                    continue;
+                }
+
+                byte[] dados = converterParaCLP(blocos, (int) params.get("size"), (int) params.get("storageId"));
+                enviarBlocoBytesAoClp(ip, (int) params.get("db"), (int) params.get("offset"), dados,
+                        (int) params.get("size"));
+
+                System.out.println("Sincronização bem-sucedida para CLP: " + ip);
+
+            } catch (Exception e) {
+                System.err.println("Falha ao sincronizar com CLP " + ip + ": " + e.getMessage());
+                // Continua para o próximo CLP mesmo se um falhar
+            }
+        }
+    }
+
+    private byte[] converterParaCLP(List<Block> blocos, int size, int storageId) {
+        byte[] dados = new byte[size];
+        Arrays.fill(dados, (byte) 0);
+
+        for (Block bloco : blocos) {
+            try {
+                if (storageId == 1) { // Estoque
+                    if (bloco.getPosition() >= 1 && bloco.getPosition() <= 28) {
+                        dados[bloco.getPosition() - 1] = (byte) bloco.getColor();
+                    }
+                } else { // Expedição
+                    if (bloco.getPosition() >= 1 && bloco.getPosition() <= 12) {
+                        int offset = (bloco.getPosition() - 1) * 2;
+                        dados[offset] = (byte) (bloco.getColor() >> 8);
+                        dados[offset + 1] = (byte) (bloco.getColor());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Erro ao converter bloco: " + e.getMessage());
+            }
+        }
+        return dados;
     }
 
 }
