@@ -26,7 +26,6 @@ import com.clpmonitor.clpmonitor.Model.Block;
 import com.clpmonitor.clpmonitor.Model.ClpData;
 import com.clpmonitor.clpmonitor.PLC.PlcConnector;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
-import com.clpmonitor.clpmonitor.Repository.StorageRepository;
 
 @Service
 public class SmartService {
@@ -51,9 +50,6 @@ public class SmartService {
 
     @Autowired
     private BlockRepository blockRepository;
-
-    @Autowired
-    private StorageRepository storageRepository;
 
     // Variáveis de cada estação
     // ********************** Estoque ***************************
@@ -95,7 +91,7 @@ public class SmartService {
 
     int numeroPedidoEst = 0;
     int andares = 0;
-    int posicaoExpedicaoEst = 0;
+   public int posicaoExpedicaoEst = 0;
 
     boolean iniciarPedido = false;
 
@@ -319,12 +315,7 @@ public class SmartService {
 
     public void iniciarExecucaoPedido(String ipClp) {
 
-        try {
-            sincronizarDadosComCLP();
-        } catch (Exception e) {
-            System.err.println("Aviso: Falha na sincronização inicial. Continuando com o pedido...");
-            // Não interrompe o fluxo mesmo se a sincronização falhar
-        }
+        sincronizarDadosComCLP();
 
         PlcConnector plcConnector = PlcConnectionManager.getConexao(ipClp);
         if (plcConnector == null) {
@@ -364,7 +355,7 @@ public class SmartService {
     // **********************************************************************************************************************************************
     // */
     public void clpEstoque(String ip, byte[] dadosClp1) {
-        // System.out.println("PROCESSANDO ESTOQUE");
+        System.out.println("PROCESSANDO ESTOQUE");
         // try {
         // TimeUnit.MILLISECONDS.sleep(3000);
         // } catch (InterruptedException e) {
@@ -562,7 +553,7 @@ public class SmartService {
                     HttpEntity<Map<String, Integer>> request = new HttpEntity<>(dadosMap, headers);
 
                     // Envia a requisição
-                    ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:8080/estoque/salvar",
+                    ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:8090/estoque/salvar",
                             request, String.class);
                     System.out.println("Resposta ao salvar estoque no banco: " + response.getBody());
 
@@ -609,7 +600,7 @@ public class SmartService {
                     HttpEntity<Map<String, Integer>> request = new HttpEntity<>(dadosMap, headers);
 
                     // Envia a requisição
-                    ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:8080/estoque/salvar",
+                    ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:8090/estoque/salvar",
                             request, String.class);
                     System.out.println("Resposta ao salvar estoque no banco: " + response.getBody());
 
@@ -783,7 +774,7 @@ public class SmartService {
     // */
     public void clpMontagem(String ip, byte[] dadosClp3) {
 
-        // System.out.println("PROCESSANDO MONTAGEM");
+        System.out.println("PROCESSANDO MONTAGEM");
         // try {
         // TimeUnit.MILLISECONDS.sleep(500);
         // } catch (InterruptedException e) {
@@ -1101,7 +1092,7 @@ public class SmartService {
                     HttpEntity<Map<String, Integer>> request = new HttpEntity<>(dadosExp, headers);
 
                     ResponseEntity<String> response = restTemplate.postForEntity(
-                            "http://localhost:8080/expedicao/salvar",
+                            "http://localhost:8090/expedicao/salvar",
                             request,
                             String.class);
 
@@ -1158,7 +1149,7 @@ public class SmartService {
 
                     // Chama o endpoint que agora deleta do banco quando valor == 0
                     ResponseEntity<String> response = restTemplate.postForEntity(
-                            "http://localhost:8080/expedicao/salvar",
+                            "http://localhost:8090/expedicao/salvar",
                             request,
                             String.class);
 
@@ -1370,6 +1361,27 @@ public class SmartService {
             }
         }
         return dados;
+    }
+
+    public void resetarPedido() {
+        // Resetar variáveis dos andares
+        cor_Andar_1 = 0;
+        cor_Andar_2 = 0;
+        cor_Andar_3 = 0;
+    
+        posicao_Estoque_Andar_1 = 0;
+        posicao_Estoque_Andar_2 = 0;
+        posicao_Estoque_Andar_3 = 0;
+    
+        // Resetar informações gerais do pedido
+        posicaoExpedicaoEst = 0;
+        numeroPedidoEst = 0;
+        andares = 0;
+    
+        // Resetar flags de controle
+        statusEstoque = 0;
+        statusProducao = 0;
+        pedidoEmCurso = false;
     }
 
 }

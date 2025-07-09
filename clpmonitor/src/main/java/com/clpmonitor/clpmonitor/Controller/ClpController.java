@@ -152,16 +152,17 @@ public class ClpController {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> blocos = (List<Map<String, Object>>) pedido.get("blocos");
 
-            //  Iniciar execução no CLP
-            // smartService.iniciarExecucaoPedido(ipClp);
+            // Iniciar estado do pedido no SmartService
+            smartService.pedidoEmCurso = true;
+            smartService.statusProducao = 0;
+            smartService.statusEstoque = 0;
 
-            //  Criar ordem de produção (deve vir antes do processamento)
             long opNumber = System.currentTimeMillis() % 100_000_000;
             Orders novaOrdem = new Orders();
             novaOrdem.setProductionOrder(opNumber);
             Orders ordemSalva = ordersRepository.save(novaOrdem);
 
-            //  Preparar dados para CLP e coletar posições
+            // Preparar dados para CLP e coletar posições
             List<Map<String, Object>> blocosParaCLP = new ArrayList<>();
             Map<Integer, Integer> posicoesEstoquePorAndar = new HashMap<>();
             Set<Integer> posicoesUsadas = new HashSet<>();
@@ -174,16 +175,16 @@ public class ClpController {
 
                 int corBloco = (int) bloco.get("corBloco");
 
-                // Buscar posição no estoque
+                // Buscar posição no estoque usando o método do SmartService
                 int posicaoEstoque = smartService.buscarPrimeiraPosicaoPorCor(corBloco, posicoesUsadas);
                 if (posicaoEstoque == -1) {
-                    throw new RuntimeException("Bloco não encontrado no estoque");
+                    throw new RuntimeException("Bloco não encontrado no estoque para a cor " + corBloco);
                 }
                 posicoesUsadas.add(posicaoEstoque);
                 posicoesEstoquePorAndar.put(andar, posicaoEstoque);
             }
 
-            //  Processar cada bloco (movimentação física)
+            // Processar cada bloco (movimentação física)
             for (int i = 0; i < blocos.size(); i++) {
                 Map<String, Object> bloco = blocos.get(i);
                 int corBloco = (int) bloco.get("corBloco");
@@ -209,11 +210,13 @@ public class ClpController {
 
                 novoBloco.setProductionOrder(ordemSalva);
                 blockRepository.save(novoBloco);
+
+                smartService.posicaoExpedicaoEst = posicaoLivre;
+
             }
 
-            //  Montar e enviar dados para CLP
+            // Montar e enviar dados para CLP
             byte[] dadosCLP = montarPedidoParaCLP(blocosParaCLP, posicoesEstoquePorAndar, opNumber);
-            // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
 
             // Exibição dos bytes em hexadecimal
             System.out.print("Bytes do pedido em hexadecimal: ");
@@ -221,6 +224,12 @@ public class ClpController {
                 System.out.printf("%02X ", b);
             }
             System.out.println();
+
+            // Enviar para o CLP usando o SmartService
+            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
+
+            // Iniciar execução do pedido no CLP
+            smartService.iniciarExecucaoPedido(ipClp);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -230,9 +239,12 @@ public class ClpController {
                     "totalBlocos", blocos.size()));
 
         } catch (Exception e) {
+            smartService.pedidoEmCurso = false; // Resetar estado em caso de erro
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", "Erro: " + e.getMessage()));
+        } finally {
+            smartService.resetarPedido();
         }
     }
 
@@ -334,6 +346,27 @@ public class ClpController {
         // Número do pedido e andares
         dados[27] = (int) (numeroPedido & 0xFFFF); // Converte para 2 bytes
         dados[28] = andares;
+        // Impressão dos dados antes da conversão para byte[]
+        System.out.println("// InfoPedido");
+        for (int andar = 1; andar <= 3; andar++) {
+            int base = (andar - 1) * 9;
+            System.out.println("cor_Andar_" + andar + " = " + dados[base] + ";");
+            System.out.println("posicao_Estoque_Andar_" + andar + ".......: " + dados[base + 1]);
+            System.out.println("cor_Lamina_1_Andar_" + andar + "..........: " + dados[base + 2]);
+            System.out.println("cor_Lamina_2_Andar_" + andar + "..........: " + dados[base + 3]);
+            System.out.println("cor_Lamina_3_Andar_" + andar + "..........: " + dados[base + 4]);
+            System.out.println("padrao_Lamina_1_Andar_" + andar + ".......: " + dados[base + 5]);
+            System.out.println("padrao_Lamina_2_Andar_" + andar + ".......: " + dados[base + 6]);
+            System.out.println("padrao_Lamina_3_Andar_" + andar + ".......: " + dados[base + 7]);
+            System.out.println("processamento_Andar_" + andar + ".........: " + dados[base + 8]);
+            System.out.println();
+        }
+
+        // Extras, se estiverem disponíveis em algum contexto
+        System.out.println("numeroPedidoEst...............: " + numeroPedido); // adapte conforme necessário
+        System.out.println("andares.......................: " + andares);
+        System.out.println("posicaoExpedicaoEst...........: " + smartService.posicaoExpedicaoEst); // adapte conforme
+                                                                                                   // necessário
 
         ByteBuffer buffer = ByteBuffer.allocate(60).order(ByteOrder.BIG_ENDIAN);
         for (int valor : dados) {
