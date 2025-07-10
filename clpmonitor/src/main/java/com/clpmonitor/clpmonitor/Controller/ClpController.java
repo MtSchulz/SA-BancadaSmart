@@ -172,11 +172,12 @@ public class ClpController {
                 int andar = i + 1;
                 bloco.put("andar", andar);
                 blocosParaCLP.add(bloco);
-
+                int posicaoEstoque = posicoesEstoquePorAndar.get(andar);
+                // Remover do estoque
+                blockRepository.deleteByStorageId_IdAndPosition(1L, posicaoEstoque);
                 int corBloco = (int) bloco.get("corBloco");
 
                 // Buscar posição no estoque usando o método do SmartService
-                int posicaoEstoque = smartService.buscarPrimeiraPosicaoPorCor(corBloco, posicoesUsadas);
                 if (posicaoEstoque == -1) {
                     throw new RuntimeException("Bloco não encontrado no estoque para a cor " + corBloco);
                 }
@@ -189,46 +190,37 @@ public class ClpController {
                 Map<String, Object> bloco = blocos.get(i);
                 int corBloco = (int) bloco.get("corBloco");
                 int andar = i + 1;
-                int posicaoEstoque = posicoesEstoquePorAndar.get(andar);
 
-                // Remover do estoque
-                blockRepository.deleteByStorageId_IdAndPosition(1L, posicaoEstoque);
-
-                // Adicionar na expedição
                 int posicaoLivre = smartService.buscarPrimeiraPosicaoLivreExp();
-                if (posicaoLivre == -1) {
-                    throw new RuntimeException("Expedição cheia");
-                }
 
+                blockRepository.deleteByStorageId_IdAndPosition(2L, posicaoLivre);
                 Block novoBloco = new Block();
                 novoBloco.setPosition(posicaoLivre);
                 novoBloco.setColor(corBloco);
 
+                // Define a expedição (id = 2)
                 Storage expedicao = new Storage();
                 expedicao.setId(2L);
                 novoBloco.setStorageId(expedicao);
-
+                // Associa a ordem de produção
                 novoBloco.setProductionOrder(ordemSalva);
+
+                // Salva o bloco na base
                 blockRepository.save(novoBloco);
 
-                smartService.posicaoExpedicaoEst = posicaoLivre;
-
+                System.out.println("Bloco salvo na posição: " + posicaoLivre);
             }
 
             // Montar e enviar dados para CLP
             byte[] dadosCLP = montarPedidoParaCLP(blocosParaCLP, posicoesEstoquePorAndar, opNumber);
 
-            // Exibição dos bytes em hexadecimal
             System.out.print("Bytes do pedido em hexadecimal: ");
             for (byte b : dadosCLP) {
                 System.out.printf("%02X ", b);
             }
             System.out.println();
 
-            // Enviar para o CLP usando o SmartService
             smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
-
-            // Iniciar execução do pedido no CLP
             smartService.iniciarExecucaoPedido(ipClp);
 
             return ResponseEntity.ok(Map.of(
@@ -240,9 +232,8 @@ public class ClpController {
 
         } catch (Exception e) {
             smartService.pedidoEmCurso = false; // Resetar estado em caso de erro
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Erro: " + e.getMessage()));
+            // RELANÇAR a exceção para garantir rollback
+            throw new RuntimeException("Erro ao processar o pedido: " + e.getMessage(), e);
         } finally {
             smartService.resetarPedido();
         }

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -19,6 +20,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -91,7 +94,7 @@ public class SmartService {
 
     int numeroPedidoEst = 0;
     int andares = 0;
-   public int posicaoExpedicaoEst = 0;
+    public int posicaoExpedicaoEst = 0;
 
     boolean iniciarPedido = false;
 
@@ -227,6 +230,12 @@ public class SmartService {
     boolean xServoDesligadoEixoGiroExp = false;
     boolean xServoDesligadoEixoVerticalExp = false;
     boolean xCondicaoIniciarExp = false;
+
+   @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     private byte[] indexColorExp = new byte[12];
     private PlcConnector plcConnectorExpedicao;
@@ -1257,31 +1266,27 @@ public class SmartService {
     // **********************************************************************************************************************************************
     // */
     public int buscarPrimeiraPosicaoPorCor(int cor, Set<Integer> posicoesUsadas) {
-        // Busca blocos no Estoque (storage_id = 1) com a cor especificada
-        List<Block> blocos = blockRepository.findByStorageId_IdAndColor(1L, cor);
+        List<Block> blocos = blockRepository.findByStorageId_IdAndColorOrderByPosition(1L, cor);
 
         for (Block bloco : blocos) {
             if (!posicoesUsadas.contains(bloco.getPosition())) {
                 return bloco.getPosition();
             }
         }
-        return -1; // Nenhuma posição disponível
+        return -1;
     }
-
     public int buscarPrimeiraPosicaoLivreExp() {
-        // Busca posições ocupadas na Expedição (storage_id = 2)
-        List<Integer> ocupadas = blockRepository.findPositionsByStorageId(2L);
-
-        for (int i = 1; i <= 12; i++) {
-            if (!ocupadas.contains(i)) {
-                return i;
-            }
-        }
-        return -1; // Cheio
+        return IntStream.rangeClosed(1, 12)  // Cria um stream de 1 a 12
+            .filter(posicao -> !isPosicaoOcupada(posicao))  // Filtra posições não ocupadas
+            .findFirst()  // Pega a primeira posição livre
+            .orElseGet(() -> {  // Se todas ocupadas, limpa a posição 1
+                blockRepository.deleteByStorageId_IdAndPosition(2L, 1);
+                return 1;
+            });
     }
-
-    public boolean isReadOnly() {
-        return readOnly;
+    
+    private boolean isPosicaoOcupada(int posicao) {
+        return blockRepository.existsByStorageId_IdAndPosition(2L, posicao);
     }
 
     public void setReadOnly(boolean readOnly) {
@@ -1368,16 +1373,16 @@ public class SmartService {
         cor_Andar_1 = 0;
         cor_Andar_2 = 0;
         cor_Andar_3 = 0;
-    
+
         posicao_Estoque_Andar_1 = 0;
         posicao_Estoque_Andar_2 = 0;
         posicao_Estoque_Andar_3 = 0;
-    
+
         // Resetar informações gerais do pedido
         posicaoExpedicaoEst = 0;
         numeroPedidoEst = 0;
         andares = 0;
-    
+
         // Resetar flags de controle
         statusEstoque = 0;
         statusProducao = 0;
