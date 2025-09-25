@@ -63,6 +63,14 @@
                             <option value="duplo">Duplo (2 blocos)</option>
                             <option value="triplo">Triplo (3 blocos)</option>
                         </select>
+                        
+                        <!-- Acréscimo da tampa -->
+                        <label for="corTampa">Cor da Tampa:</label>
+                        <select id="corTampa" onchange="atualizarVisualizacao()" class="form-select">
+                            <option value="preto">Preto</option>
+                            <option value="azul">Azul</option>
+                            <option value="vermelho">Vermelho</option>
+                        </select>
                     </div>
 
                     <div id="blocosContainer"></div>

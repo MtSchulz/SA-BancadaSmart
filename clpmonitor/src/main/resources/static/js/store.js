@@ -552,7 +552,9 @@ document.addEventListener('click', function (event) {
 // Funções de manipulação dinâmica de blocos (jQuery)
 // =============================================
 
-// Visualização completa do bloco
+/**
+ * Atualiza a visualização completa do bloco incluindo a tampa
+ */
 function atualizarVisualizacao() {
   const visualizacao = document.getElementById('visualizacaoBloco');
   if (!visualizacao) return;
@@ -561,12 +563,15 @@ function atualizarVisualizacao() {
 
   // Cria container principal
   const container = document.createElement('div');
-  container.className = 'visualizacao-container stacked-view';
+  container.className = 'visualizacao-container';
 
   // Cria container para os blocos empilhados
   const blocosStack = document.createElement('div');
   blocosStack.className = 'blocos-stack';
 
+  // Obtém a cor da tampa selecionada
+  const corTampa = document.getElementById('corTampa').value;
+  
   // Obtém todos os blocos visíveis na interface
   const blocosCount = document.querySelectorAll('[id^="bloco-container-"]').length;
 
@@ -578,6 +583,13 @@ function atualizarVisualizacao() {
     // Cria a visualização do bloco individual
     const viewDiv = document.createElement('div');
     viewDiv.className = 'bloco-individual-view';
+
+    // Verifica se o bloco está girado
+    const pedidoView = document.getElementById(`pedido-view${i}`);
+    const isSpun = pedidoView && pedidoView.classList.contains('spin');
+    if (isSpun) {
+      viewDiv.classList.add('spin');
+    }
 
     // Adiciona imagens na ordem correta
     const addImage = (elementId, zIndex) => {
@@ -595,9 +607,14 @@ function atualizarVisualizacao() {
     // Adiciona componentes na ordem correta para empilhamento
     addImage(`bloco-${i}`, 1); // Bloco base
 
-    // Lâminas
-    addImage(`lamina${i}-3`, 10); // Lâmina esquerda (ou direita se girado)
-    addImage(`lamina${i}-1`, 20); // Lâmina direita (ou esquerda se girado)
+    // Lâminas - ordem corrigida baseada no spin
+    if (isSpun) {
+      addImage(`lamina${i}-3`, 10); // Lâmina esquerda (girada)
+      addImage(`lamina${i}-1`, 20); // Lâmina direita (girada)
+    } else {
+      addImage(`lamina${i}-1`, 10); // Lâmina direita
+      addImage(`lamina${i}-3`, 20); // Lâmina esquerda
+    }
     addImage(`lamina${i}-2`, 30); // Lâmina central
 
     // Padrões
@@ -610,8 +627,51 @@ function atualizarVisualizacao() {
   }
 
   container.appendChild(blocosStack);
+
+  // Adiciona a tampa no topo (apenas se houver blocos)
+  if (blocosCount > 0 && corTampa) {
+    const tampaDiv = document.createElement('div');
+    tampaDiv.className = 'bloco-view tampa-view';
+    
+    const viewDiv = document.createElement('div');
+    viewDiv.className = 'bloco-individual-view';
+    
+    const tampaImg = document.createElement('img');
+    tampaImg.className = 'stacked-image tampa';
+    tampaImg.alt = `Tampa ${corTampa}`;
+    
+    // Carrega a imagem da tampa
+    const timestamp = new Date().getTime();
+    tampaImg.src = `assets/tampas/tampa${corTampa}.png?t=${timestamp}`;
+    tampaImg.style.zIndex = 100;
+    
+    tampaImg.onerror = function() {
+      // Fallback: tenta carregar do diretório de blocos se não encontrar em tampas
+      this.src = `assets/bloco/tampa${corTampa}.png?t=${timestamp}`;
+    };
+    
+    viewDiv.appendChild(tampaImg);
+    tampaDiv.appendChild(viewDiv);
+    container.appendChild(tampaDiv);
+  }
+
   visualizacao.innerHTML = '';
   visualizacao.appendChild(container);
+}
+
+/**
+ * Verifica se as imagens da tampa foram carregadas corretamente
+ */
+function verificarImagensTampa() {
+  const tampaImages = document.querySelectorAll('.tampa');
+  tampaImages.forEach(img => {
+    img.onerror = function() {
+      console.warn('Imagem da tampa não encontrada:', this.src);
+      // Fallback: tenta carregar do diretório de blocos se não encontrar em tampas
+      const src = this.src.replace('tampas', 'bloco');
+      this.src = src;
+    };
+  });
 }
 
 /**
@@ -777,25 +837,6 @@ window.addEventListener('load', function () {
   listarHistorico();
 });
 
-// Carrega o histórico ao abrir a página
-document.addEventListener("DOMContentLoaded", () => {
-  addMenuButton();
-  renderBlocos();
-
-  // Event listeners para elementos dinâmicos
-  document.addEventListener('change', function (e) {
-    if (e.target.matches('select')) {
-      atualizarVisualizacao();
-    }
-  }),
-
-    document.addEventListener('click', function (e) {
-      if (e.target.closest('.spin')) {
-        setTimeout(atualizarVisualizacao, 300);
-      }
-    });
-});
-
 function ajustarAlturaVisualizacao() {
   const container = document.querySelector('.visualizacao-container');
   const blocos = document.querySelectorAll('.visualizacao-bloco.stacked');
@@ -805,3 +846,27 @@ function ajustarAlturaVisualizacao() {
     container.style.height = `${altura}px`;
   }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  addMenuButton();
+  renderBlocos();
+
+
+
+  
+  // Event listeners para elementos dinâmicos
+  document.addEventListener('change', function (e) {
+    if (e.target.matches('select') || e.target.id === 'corTampa') {
+      atualizarVisualizacao();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.spin')) {
+      setTimeout(atualizarVisualizacao, 300);
+    }
+  });
+  
+  // Atualiza a visualização inicial
+  setTimeout(atualizarVisualizacao, 500);
+});

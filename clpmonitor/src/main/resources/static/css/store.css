@@ -654,7 +654,6 @@ img[src*="#"] {
     height: auto;
 }
 
-
 /* Visualização Empilhada */
 
 .bloco-view {
@@ -680,7 +679,7 @@ img[src*="#"] {
     position: relative;
     width: 100%;
     max-width: 350px;
-    max-height: 350px;
+    max-height: 370px;
     margin: 0 auto;
 }
 
@@ -731,3 +730,73 @@ img[src*="#"] {
     display: none;
 }
 
+/* ============================================= */
+/* ESTILOS CORRIGIDOS PARA A TAMPA */
+/* ============================================= */
+
+/* Estilos para a tampa - CORRIGIDO */
+.tampa-view {
+    position: relative;
+    width: 100%;
+    margin-bottom: -20px;
+    z-index: 100;
+    top: -200px; /* Posiciona a tampa acima dos blocos */
+}
+
+.tampa-view .tampa {
+    position: relative;
+    width: 100%;
+    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Container principal da visualização - CORRIGIDO */
+.visualizacao-container {
+    position: relative;
+    padding: 20px 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
+    overflow: visible;
+    min-height: 400px; /* Altura mínima para acomodar blocos + tampa */
+}
+
+/* Container dos blocos - CORRIGIDO */
+.blocos-stack {
+    position: relative;
+    width: 100%;
+    max-width: 350px;
+    min-height: 200px;
+    margin: 0 auto;
+}
+
+/* Ajuste de posicionamento para a tampa ficar integrada */
+.bloco-view.tampa-view {
+    margin-bottom: 0;
+    top: 0;
+}
+
+/* Ajuste no z-index para garantir que a tampa fique acima de tudo */
+.bloco-view:nth-child(1) { z-index: 3; }
+.bloco-view:nth-child(2) { z-index: 2; }
+.bloco-view:nth-child(3) { z-index: 1; }
+.tampa-view { z-index: 100; }
+
+/* Fallback para imagens não carregadas */
+.stacked-image:not([src]), 
+.stacked-image[src=""], 
+.stacked-image[src*="#"] {
+    display: none;
+}
+
+/* Ajuste para quando não há blocos */
+.blocos-stack:empty::before {
+    content: "Configure os blocos acima";
+    display: block;
+    text-align: center;
+    color: #666;
+    padding: 60px 20px;
+    font-style: italic;
+}
