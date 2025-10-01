@@ -59,7 +59,7 @@ public class SmartService {
     
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final String esp32BaseUrl = "http://192.168.0.50"; //  IP do  ESP32
+    private final String esp32BaseUrl = "http://10.74.241.245"; //  IP do  ESP32
 
 
     // Variáveis de cada estação
@@ -309,13 +309,13 @@ public class SmartService {
  */
 public boolean moverParaCorTampa(int posicao) {
     try {
-        System.out.println("🔄 Movendo motor para posição da cor da tampa: " + posicao);
+        System.out.println(" Movendo motor para posição da cor da tampa: " + posicao);
         
         String url = esp32BaseUrl + "/api/move_pos?pos=" + posicao;
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         
         if (response.getStatusCode().is2xxSuccessful()) {
-            System.out.println("✅ Movimento iniciado para cor " + posicao);
+            System.out.println("Movimento iniciado para cor " + posicao);
             
             // Aguarda um pouco e verifica se a posição foi atingida
             return verificarPosicaoAtingida(posicao);
@@ -353,6 +353,66 @@ private boolean verificarPosicaoAtingida(int posicaoSolicitada) {
     return false;
 }
 
+/**
+ * Processa a cor da tampa antes de iniciar o pedido
+ */
+public boolean processarCorTampa(Map<String, Object> pedido) {
+    try {
+        System.out.println(" Iniciando processamento da cor da tampa...");
+        
+        // Extrai a cor da tampa do pedido
+        String corTampaStr = (String) pedido.get("corTampa");
+        
+        if (corTampaStr == null || corTampaStr.isEmpty()) {
+            System.err.println(" Cor da tampa não especificada no pedido");
+            return false;
+        }
+        
+        // Mapeia a string da cor para o número correspondente
+        int corTampa = mapearCorTampaParaNumero(corTampaStr);
+        
+        if (corTampa == -1) {
+            System.err.println("Cor da tampa inválida: " + corTampaStr);
+            return false;
+        }
+        
+        System.out.println(" Processando cor da tampa: " + corTampaStr + " → Posição: " + corTampa);
+        
+        // Move o motor para a cor da tampa
+        boolean sucesso = moverParaCorTampa(corTampa);
+        
+        if (sucesso) {
+            System.out.println("Cor da tampa posicionada com sucesso!");
+        } else {
+            System.err.println(" Falha ao posicionar cor da tampa");
+        }
+        
+        return sucesso;
+        
+    } catch (Exception e) {
+        System.err.println("Erro ao processar cor da tampa: " + e.getMessage());
+        e.printStackTrace();
+        return false;
+    }
+}
+
+/**
+ * Mapeia a string da cor da tampa para o número correspondente
+ * conforme definido no frontend
+ */
+private int mapearCorTampaParaNumero(String corTampaStr) {
+    switch (corTampaStr.toLowerCase()) {
+        case "preto":
+            return 1;  // Posição 1 no ESP32
+        case "azul":
+            return 2;  // Posição 2 no ESP32  
+        case "vermelho":
+            return 3;  // Posição 3 no ESP32
+        default:
+            System.err.println("Cor da tampa não reconhecida: " + corTampaStr);
+            return -1;
+    }
+}
 
 
     // **********************************************************
