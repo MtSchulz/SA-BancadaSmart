@@ -29,6 +29,8 @@ import com.clpmonitor.clpmonitor.Model.Block;
 import com.clpmonitor.clpmonitor.Model.ClpData;
 import com.clpmonitor.clpmonitor.PLC.PlcConnector;
 import com.clpmonitor.clpmonitor.Repository.BlockRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Service
 public class SmartService {
@@ -53,6 +55,12 @@ public class SmartService {
 
     @Autowired
     private BlockRepository blockRepository;
+
+    
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String esp32BaseUrl = "http://192.168.0.50"; //  IP do  ESP32
+
 
     // Variáveis de cada estação
     // ********************** Estoque ***************************
@@ -219,11 +227,9 @@ public class SmartService {
     boolean adicionarExpedicao = false;
     boolean removerExpedicao = false;
     int opGuardadoExpedicao = 0;
-
     /*---- RealidadeAumentada */
-    boolean xEmergenciaAtivadaExp = false;
-    boolean xComutadorAutomaticoExp = false;
-    boolean xNecessitaHomeEixoVerticalExp = false;
+
+       boolean xNecessitaHomeEixoVerticalExp = false;
     boolean xNecessitaHomeEixoGiroExp = false;
     boolean xNecessitaHomeEixoHorizontalExp = false;
     boolean xServoDesligadoEixoHorizontalExp = false;
@@ -231,11 +237,6 @@ public class SmartService {
     boolean xServoDesligadoEixoVerticalExp = false;
     boolean xCondicaoIniciarExp = false;
 
-   @Autowired
-    private PlatformTransactionManager transactionManager;
-
-    @Autowired
-    private TransactionTemplate transactionTemplate;
 
     private byte[] indexColorExp = new byte[12];
     private PlcConnector plcConnectorExpedicao;
@@ -300,6 +301,59 @@ public class SmartService {
         }
 
     }
+
+    /*
+ * Move o motor para a posição específica da cor da tampa
+ * @param posicao Posição da cor (1, 2 ou 3)
+ * @return true se movimento foi bem sucedido, false caso contrário
+ */
+public boolean moverParaCorTampa(int posicao) {
+    try {
+        System.out.println("🔄 Movendo motor para posição da cor da tampa: " + posicao);
+        
+        String url = esp32BaseUrl + "/api/move_pos?pos=" + posicao;
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        
+        if (response.getStatusCode().is2xxSuccessful()) {
+            System.out.println("✅ Movimento iniciado para cor " + posicao);
+            
+            // Aguarda um pouco e verifica se a posição foi atingida
+            return verificarPosicaoAtingida(posicao);
+        }
+    } catch (Exception e) {
+        System.err.println(" Erro ao comunicar com ESP32: " + e.getMessage());
+    }
+    return false;
+}
+
+/**
+ * Verifica se a posição foi atingida corretamente
+ */
+private boolean verificarPosicaoAtingida(int posicaoSolicitada) {
+    try {
+        // Aguarda alguns segundos para o movimento completar
+        Thread.sleep(3000);
+        
+        String url = esp32BaseUrl + "/api/last_result";
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        
+        if (response.getStatusCode().is2xxSuccessful()) {
+            JsonNode resultado = objectMapper.readTree(response.getBody());
+            String status = resultado.get("status").asText();
+            int posAtual = resultado.get("pos_atual").asInt();
+            
+            if ("POS ATINGIDA".equals(status) && posAtual == posicaoSolicitada) {
+                System.out.println("Posição " + posicaoSolicitada + " atingida com sucesso!");
+                return true;
+            }
+        }
+    } catch (Exception e) {
+        System.err.println("Erro ao verificar posição: " + e.getMessage());
+    }
+    return false;
+}
+
+
 
     // **********************************************************
     public void enviarBlocoBytesAoClp(String ipClp, int db, int offset, byte[] dados, int size) throws Exception {
@@ -1199,7 +1253,7 @@ public class SmartService {
 
     public void sendExpeditionUpdate() {
         int values[] = new int[12];
-
+    
         if (plcConnectorExpedicao != null) {
             try {
                 plcConnectorExpedicao.disconnect();
@@ -1207,15 +1261,18 @@ public class SmartService {
                 System.err.println("Erro ao desconectar plcConnectorExpedicao: " + e.getMessage());
             }
         }
+        
         plcConnectorExpedicao = new PlcConnector("10.74.241.40", 102);
         List<Integer> byteArray = new ArrayList<>();
-
+    
         try {
             plcConnectorExpedicao.connect();
         } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("Falha na conexão com CLP de expedição!");
+            return;
         }
-
+    
         try {
             int j = 0;
             for (int i = 6; i <= 28; i += 2) {
@@ -1224,14 +1281,15 @@ public class SmartService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Falha!");
+            System.out.println("Falha na leitura dos dados da expedição!");
+            return;
         }
-
+    
         for (int i = 0; i < 12; i++) {
             byteArray.add(values[i]);
             indexColorExp[i] = (byte) values[i];
         }
-
+    
         ClpData expeditionData = new ClpData(5, byteArray);
         sendToEmitters("expedition-data", expeditionData);
     }
