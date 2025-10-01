@@ -526,7 +526,7 @@ img[src*="#"] {
 
 /* Hierarquia de z-index específica */
 #tampa {
-    z-index: 100;
+    z-index: 0;
 }
 
 [id^="padrao"] {
@@ -711,59 +711,49 @@ img[src*="#"] {
     transform: translateY(-50%) scaleX(-1);
 }
 
-/* Ordem de empilhamento específica */
-.bloco-view:nth-child(1) {
-    z-index: 3;
-}
 
-.bloco-view:nth-child(2) {
-    z-index: 2;
-}
+/* ============================================================
+   ORDEM DE EMPILHAMENTO DOS BLOCOS E TAMPA
+   ============================================================ */
 
-.bloco-view:nth-child(3) {
-    z-index: 1;
-}
+/* Ordem de empilhamento dos blocos */
+.bloco-view:nth-child(1) { z-index: 3; }
+.bloco-view:nth-child(2) { z-index: 2; }
+.bloco-view:nth-child(3) { z-index: 1; }
 
-/* Ajuste para imagens vazias */
-.stacked-image[src="#"],
-.stacked-image:not([src]) {
-    display: none;
-}
-
-/* ============================================= */
-/* ESTILOS CORRIGIDOS PARA A TAMPA */
-/* ============================================= */
-
-/* Estilos para a tampa - CORRIGIDO */
+/* Estilos para a tampa */
 .tampa-view {
-    position: relative;
+    position: absolute;
+    bottom: 100%;       /* cola no topo do último bloco */
+    left: 0;
     width: 100%;
-    margin-bottom: -20px;
-    z-index: 100;
-    top: -200px; /* Posiciona a tampa acima dos blocos */
+    z-index: 999;       /* tampa sempre acima */
+    display: flex;
+    justify-content: center;
 }
 
 .tampa-view .tampa {
-    position: relative;
     width: 100%;
-    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2));
+    max-width: 350px;
+    display: block;
+    transform: scaleX(-1); /* inverte se precisar */
 }
 
-/* Container principal da visualização - CORRIGIDO */
+/* Container principal da visualização */
 .visualizacao-container {
     position: relative;
-    padding: 20px 0;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 350px;
     margin: 0 auto;
+    padding: 20px 0;
+    min-height: 400px;      /* garante espaço para blocos + tampa */
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     overflow: visible;
-    min-height: 400px; /* Altura mínima para acomodar blocos + tampa */
 }
 
-/* Container dos blocos - CORRIGIDO */
+/* Container dos blocos */
 .blocos-stack {
     position: relative;
     width: 100%;
@@ -772,18 +762,6 @@ img[src*="#"] {
     margin: 0 auto;
 }
 
-/* Ajuste de posicionamento para a tampa ficar integrada */
-.bloco-view.tampa-view {
-    margin-bottom: 0;
-    top: 0;
-}
-
-/* Ajuste no z-index para garantir que a tampa fique acima de tudo */
-.bloco-view:nth-child(1) { z-index: 3; }
-.bloco-view:nth-child(2) { z-index: 2; }
-.bloco-view:nth-child(3) { z-index: 1; }
-.tampa-view { z-index: 100; }
-
 /* Fallback para imagens não carregadas */
 .stacked-image:not([src]), 
 .stacked-image[src=""], 
@@ -791,7 +769,7 @@ img[src*="#"] {
     display: none;
 }
 
-/* Ajuste para quando não há blocos */
+/* Quando não há blocos */
 .blocos-stack:empty::before {
     content: "Configure os blocos acima";
     display: block;
