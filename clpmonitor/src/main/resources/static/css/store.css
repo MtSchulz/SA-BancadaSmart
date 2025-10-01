@@ -524,30 +524,7 @@ img[src*="#"] {
     transform: scaleX(-1);
 }
 
-/* Hierarquia de z-index específica */
-#tampa {
-    z-index: 0;
-}
 
-[id^="padrao"] {
-    z-index: 70;
-}
-
-[id^="lamina"][id$="-1"] {
-    z-index: 20;
-}
-
-[id^="lamina"][id$="-2"] {
-    z-index: 30;
-}
-
-[id^="lamina"][id$="-3"] {
-    z-index: 10;
-}
-
-[id^="bloco"][id$="-3"] {
-    z-index: 1;
-}
 
 /* Botão de atualização */
 #btnAtualizarVisualizacao {
@@ -718,16 +695,18 @@ img[src*="#"] {
 
 /* Ordem de empilhamento dos blocos */
 .bloco-view:nth-child(1) { z-index: 3; }
-.bloco-view:nth-child(2) { z-index: 2; }
+/*.bloco-view:nth-child(2) { z-index: 2; } */
 .bloco-view:nth-child(3) { z-index: 1; }
 
 /* Estilos para a tampa */
+
+
 .tampa-view {
     position: absolute;
-    bottom: 100%;       /* cola no topo do último bloco */
+    bottom: calc(100% - 115px); /* "cola" no bloco, ajuste fino */
     left: 0;
     width: 100%;
-    z-index: 999;       /* tampa sempre acima */
+    z-index: 999;
     display: flex;
     justify-content: center;
 }
