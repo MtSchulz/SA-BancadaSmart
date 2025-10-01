@@ -127,6 +127,9 @@ function renderBlocos() {
 
     container.appendChild(blocoDiv);
   }
+  
+  // Atualiza a visualização após renderizar os blocos
+  setTimeout(atualizarVisualizacao, 100);
 }
 
 /**
@@ -199,6 +202,9 @@ function changePedidoView(id, lamina) {
       }
     });
   }
+  
+  // Atualiza a visualização completa após mudanças
+  atualizarVisualizacao();
 }
 
 // Funções auxiliares
@@ -246,30 +252,10 @@ function spin(id) {
 
   lamina1.src = newSrc1;
   lamina3.src = newSrc3;
+  
+  // Atualiza a visualização completa após girar
+  atualizarVisualizacao();
 }
-
-/*fetch("/pedidoTeste", {
-  method: "POST",
-  body: formData,
-}).then((response) => {
-  if (response.redirected) {
-    window.location.href = response.url;
-    //console.log("Pedido:", pedido);
-    console.log(JSON.stringify(pedido, null, 2));
-    fetch("/store/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([pedido])
-    }).then(res => {
-      if (res.ok) {
-        alert("Pedido enviado com sucesso!");
-        listarPedidos();
-      } else {
-        alert("Erro ao enviar pedido.");
-      }
-    });
-  }
-});*/
 
 // =============================================
 // Funções de manipulação de pedidos
@@ -278,16 +264,17 @@ function spin(id) {
 /**
  * Envia pedido para a base de dados
  */
-// Envia pedido para a base de dados
 function enviarPedido() {
   event.preventDefault();
   
   const tipoPedido = document.getElementById("tipoPedido").value;
+  const corTampa = document.getElementById("corTampa").value;
   const blocosCount = tipoPedido === "simples" ? 1 : tipoPedido === "duplo" ? 2 : 3;
 
   const pedido = {
     ipClp: "10.74.241.10", // IP do CLP de estoque
     tipoPedido: tipoPedido,
+    corTampa: corTampa, // Adiciona a cor da tampa ao pedido
     blocos: []
   };
 
@@ -353,6 +340,7 @@ function enviarPedido() {
     btnEnviar.disabled = false;
   });
 }
+
 window.onclick = function (event) {
   const modal = document.getElementById('pedidoModal');
   if (event.target == modal) {
@@ -400,7 +388,6 @@ function listarPedidos() {
     });
 }
 
-
 function updateExpedition(data = null) {
   const grid = document.getElementById('expedition-grid');
   if (!grid) return;
@@ -424,68 +411,6 @@ function updateExpedition(data = null) {
 // Funções de histórico
 // =============================================
 
-/**
- * Lista o histórico de pedidos
- */
-/* 
-function listarHistorico() {
-  fetch("/store/orders/history")
-    .then(response => response.json())
-    .then(data => {
-      const listaContainer = document.getElementById("listaHistorico");
-      listaContainer.innerHTML = "";
- 
-      if (data.length === 0) {
-        listaContainer.innerHTML = "<p>Nenhum pedido histórico encontrado.</p>";
-        document.getElementById("totalPedidos").textContent = "0";
-        return;
-      }
- 
-      document.getElementById("totalPedidos").textContent = data.length;
- 
-      data.forEach((pedido, index) => {
-        const pedidoDiv = document.createElement("div");
-        pedidoDiv.classList.add("pedido");
- 
-        const dataPedido = pedido.data ? new Date(pedido.data).toLocaleString() : "Data não disponível";
- 
-        pedidoDiv.innerHTML = `
-                    <div class="pedido-header">
-                        <h3>Pedido #${pedido.id || index + 1} - ${dataPedido}</h3>
-                        <span class="pedido-tipo">Tipo: ${pedido.tipo}</span>
-                    </div>
-                `;
- 
-        pedido.blocos.forEach((bloco, i) => {
-          const blocoDiv = document.createElement("div");
-          blocoDiv.classList.add("bloco-info");
- 
-          blocoDiv.innerHTML = `
-                        <strong>Bloco ${i + 1}</strong> - Cor: ${bloco.cor || "Não especificada"}
-                        <div class="laminas-container">
-                            ${bloco.laminas.map((lamina, j) => `
-                                <div class="lamina-info">
-                                    <span>Lâmina ${j + 1}:</span>
-                                    <span>Cor: ${lamina.cor || "-"}</span>
-                                    <span>Padrão: ${lamina.padrao || "-"}</span>
-                                </div>
-                            `).join("")}
-                        </div>
-                    `;
- 
-          pedidoDiv.appendChild(blocoDiv);
-        });
- 
-        listaContainer.appendChild(pedidoDiv);
-      });
-    })
-    .catch(error => {
-      console.error("Erro ao carregar histórico:", error);
-      document.getElementById("listaHistorico").innerHTML =
-        "<p>Erro ao carregar histórico de pedidos.</p>";
-    });
-}
-*/
 /**
  * Filtra o histórico de pedidos
  */
@@ -640,13 +565,14 @@ function atualizarVisualizacao() {
     tampaImg.className = 'stacked-image tampa';
     tampaImg.alt = `Tampa ${corTampa}`;
     
-    // Carrega a imagem da tampa
+    // Carrega a imagem da tampa - seguindo o mesmo padrão dos blocos
     const timestamp = new Date().getTime();
     tampaImg.src = `assets/tampas/tampa${corTampa}.png?t=${timestamp}`;
     tampaImg.style.zIndex = 100;
     
+    // Fallback para caso a imagem não seja encontrada
     tampaImg.onerror = function() {
-      // Fallback: tenta carregar do diretório de blocos se não encontrar em tampas
+      console.warn('Imagem da tampa não encontrada, tentando fallback...');
       this.src = `assets/bloco/tampa${corTampa}.png?t=${timestamp}`;
     };
     
@@ -706,7 +632,6 @@ function carregarCoresDisponiveis() {
 // Inicialização e eventos
 // =============================================
 
-
 document.addEventListener("DOMContentLoaded", () => {
   // Adiciona botão de menu
   addMenuButton();
@@ -720,10 +645,6 @@ document.addEventListener("DOMContentLoaded", () => {
       $('.plus').after('<section class="hidden"></section>');
     }
   }
-
-  document.addEventListener("DOMContentLoaded", () => {
-
-  })
 
   // Adiciona o botão de excluir
   function addDeleteButton(section) {
@@ -834,7 +755,6 @@ window.addEventListener('resize', () => {
 window.addEventListener('load', function () {
   addMenuButton();
   renderBlocos();
-  listarHistorico();
 });
 
 function ajustarAlturaVisualizacao() {
@@ -847,13 +767,11 @@ function ajustarAlturaVisualizacao() {
   }
 }
 
+// Inicialização principal
 document.addEventListener("DOMContentLoaded", () => {
   addMenuButton();
   renderBlocos();
 
-
-
-  
   // Event listeners para elementos dinâmicos
   document.addEventListener('change', function (e) {
     if (e.target.matches('select') || e.target.id === 'corTampa') {
