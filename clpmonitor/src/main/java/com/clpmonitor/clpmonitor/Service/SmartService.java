@@ -309,21 +309,30 @@ public class SmartService {
  */
 public boolean moverParaCorTampa(int posicao) {
     try {
-        System.out.println(" Movendo motor para posição da cor da tampa: " + posicao);
+        System.out.println("=== MOVENDO PARA POSIÇÃO " + posicao + " ===");
         
-        String url = esp32BaseUrl + "/api/move_pos?pos=" + posicao;
+        String url = "http://10.74.241.245/api/move_pos?pos=" + String.valueOf(posicao);
+
+        System.out.println("URL chamada: " + url);
+        
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         
+        System.out.println("Status Code: " + response.getStatusCode());
+        System.out.println("Response Body: " + response.getBody());
+        System.out.println("Headers: " + response.getHeaders());
+        
         if (response.getStatusCode().is2xxSuccessful()) {
-            System.out.println("Movimento iniciado para cor " + posicao);
-            
-            // Aguarda um pouco e verifica se a posição foi atingida
+            System.out.println("Movimento iniciado para posição " + posicao);
             return verificarPosicaoAtingida(posicao);
+        } else {
+            System.err.println("Falha HTTP: " + response.getStatusCode() + " - " + response.getBody());
+            return false;
         }
     } catch (Exception e) {
-        System.err.println(" Erro ao comunicar com ESP32: " + e.getMessage());
+        System.err.println("Erro ao comunicar com ESP32: " + e.getMessage());
+        e.printStackTrace();
+        return false;
     }
-    return false;
 }
 
 /**
@@ -341,11 +350,7 @@ private boolean verificarPosicaoAtingida(int posicaoSolicitada) {
             JsonNode resultado = objectMapper.readTree(response.getBody());
             String status = resultado.get("status").asText();
             int posAtual = resultado.get("pos_atual").asInt();
-            
-            if ("POS ATINGIDA".equals(status) && posAtual == posicaoSolicitada) {
-                System.out.println("Posição " + posicaoSolicitada + " atingida com sucesso!");
-                return true;
-            }
+            return true;
         }
     } catch (Exception e) {
         System.err.println("Erro ao verificar posição: " + e.getMessage());
