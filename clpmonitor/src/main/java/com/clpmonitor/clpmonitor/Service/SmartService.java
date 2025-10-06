@@ -20,8 +20,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -410,9 +408,9 @@ private int mapearCorTampaParaNumero(String corTampaStr) {
         case "preto":
             return 1;  // Posição 1 no ESP32
         case "azul":
-            return 2;  // Posição 2 no ESP32  
+            return 3;  // Posição 2 no ESP32  
         case "vermelho":
-            return 3;  // Posição 3 no ESP32
+            return 2;  // Posição 3 no ESP32
         default:
             System.err.println("Cor da tampa não reconhecida: " + corTampaStr);
             return -1;

@@ -271,7 +271,7 @@ function enviarPedido() {
   const corTampa = document.getElementById("corTampa").value;
   const blocosCount = tipoPedido === "simples" ? 1 : tipoPedido === "duplo" ? 2 : 3;
 
- n  const pedido = {
+  const pedido = {
     ipClp: "10.74.241.10", // IP do CLP de estoque
     tipoPedido: tipoPedido,
     corTampa: corTampa, // Adiciona a cor da tampa ao pedido

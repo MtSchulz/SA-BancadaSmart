@@ -241,8 +241,8 @@ public class ClpController {
             System.out.println();
 
             // Enviar dados e iniciar pedido no CLP
-            // smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
-            // smartService.iniciarExecucaoPedido(ipClp);
+            smartService.enviarBlocoBytesAoClp(ipClp, 9, 2, dadosCLP, dadosCLP.length);
+            smartService.iniciarExecucaoPedido(ipClp);
             smartService.sincronizarDadosComCLP();
             return ResponseEntity.ok(Map.of(
                     "success", true,
